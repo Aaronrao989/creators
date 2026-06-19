@@ -3,587 +3,706 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Award,
   Building2,
-  CalendarClock,
   Check,
+  ChevronDown,
   ClipboardList,
-  Crown,
+  Download,
+  Dumbbell,
+  Heart,
   IndianRupee,
   LayoutPanelTop,
   MapPin,
-  ShieldCheck,
+  Phone,
+  Plus,
+  Share2,
   Sparkles,
   TrendingUp,
   Users,
-  Waves,
   X,
 } from "lucide-react";
 import type { AmenityKey, Property } from "@/lib/types";
-import { compareProperties, FACTOR_LABELS, scoreTier } from "@/lib/scoring";
+import { properties as ALL_PROPERTIES } from "@/data/properties";
+import { compareProperties, scoreTier } from "@/lib/scoring";
 import { useComparison } from "@/store/comparison";
-import { ScoreRing } from "@/components/comparison/score-ring";
-import { Badge } from "@/components/ui/badge";
+import { useAuth, selectShortlistIds } from "@/store/auth";
+import { useMounted } from "@/lib/use-mounted";
+import { LocationMap } from "@/components/comparison/location-map";
 import { Button } from "@/components/ui/button";
 import { cn, formatPriceLakh } from "@/lib/utils";
 
+const NAV = [
+  { id: "overview", icon: ClipboardList, label: "Overview" },
+  { id: "price", icon: IndianRupee, label: "Price & Configuration" },
+  { id: "amenities", icon: Dumbbell, label: "Amenities" },
+  { id: "location", icon: MapPin, label: "Location & Connectivity" },
+  { id: "floorplans", icon: LayoutPanelTop, label: "Floor Plans" },
+  { id: "investment", icon: TrendingUp, label: "Investment Potential" },
+  { id: "bestfor", icon: Users, label: "Best For" },
+  { id: "similar", icon: Building2, label: "Similar Properties" },
+];
+
 const AMENITIES: { key: AmenityKey; label: string }[] = [
+  { key: "clubhouse", label: "Clubhouse" },
   { key: "pool", label: "Swimming Pool" },
   { key: "gym", label: "Gymnasium" },
-  { key: "clubhouse", label: "Clubhouse" },
-  { key: "security", label: "24/7 Security" },
-  { key: "sports", label: "Sports Area" },
-  { key: "kidsArea", label: "Kids' Area" },
+  { key: "sports", label: "Sports Court" },
+  { key: "kidsArea", label: "Kids Play Area" },
   { key: "coworking", label: "Co-working Space" },
   { key: "powerBackup", label: "Power Backup" },
+  { key: "security", label: "24/7 Security" },
 ];
 
 export function ComparisonView({ properties }: { properties: Property[] }) {
   const n = properties.length;
-  const result = React.useMemo(
-    () => compareProperties(properties),
-    [properties],
-  );
-
-  // Grid template: label column + N value columns.
-  const gridCols = {
-    gridTemplateColumns: `minmax(140px, 200px) repeat(${n}, minmax(0, 1fr))`,
+  const result = React.useMemo(() => compareProperties(properties), [properties]);
+  const remove = useComparison((s) => s.remove);
+  const router = useRouter();
+  const pathname = usePathname();
+  const mounted = useMounted();
+  const user = useAuth((s) => s.user);
+  const toggleShortlist = useAuth((s) => s.toggleShortlist);
+  const savedIds = useAuth(selectShortlistIds);
+  const isSaved = (id: string) => mounted && savedIds.includes(id);
+  const handleShortlist = (id: string) => {
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
+    toggleShortlist(id);
   };
 
-  const priceArr = properties.map((p) => p.priceLakh);
-  const sqftArr = properties.map((p) => p.pricePerSqFt);
-  const lowestIdx = (arr: number[]) => arr.indexOf(Math.min(...arr));
-  const highestIdx = (arr: number[]) => arr.indexOf(Math.max(...arr));
+  const valueCols = { gridTemplateColumns: `repeat(${n}, minmax(0,1fr))` };
 
-  const awards = [
-    {
-      id: result.bestValueId,
-      label: "Best Value",
-      icon: Award,
-      tint: "text-success",
-    },
-    {
-      id: result.bestLuxuryId,
-      label: "Best Luxury",
-      icon: Crown,
-      tint: "text-accent",
-    },
-    {
-      id: result.bestFamilyId,
-      label: "Best for Families",
-      icon: Users,
-      tint: "text-[#6366f1]",
-    },
-    {
-      id: result.bestInvestmentId,
-      label: "Best Investment",
-      icon: TrendingUp,
-      tint: "text-[#a855f7]",
-    },
-  ];
+  const similar = ALL_PROPERTIES.filter(
+    (p) => !properties.some((sel) => sel.id === p.id),
+  ).slice(0, 3);
 
   return (
-    <div>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary to-[hsl(274_52%_26%)] pb-8 pt-8 text-primary-foreground">
-        <div className="pointer-events-none absolute -right-16 top-0 h-72 w-72 rounded-full bg-accent/20 blur-[110px]" />
-        <div className="container relative">
-          <Link href="/properties">
-            <Button
-              variant="outline"
-              size="sm"
-              className="mb-6 border-white/20 bg-white/5 text-white hover:bg-white/10"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back to selection
-            </Button>
+    <div className="bg-muted/30">
+      {/* Top bar */}
+      <div className="border-b border-border bg-card">
+        <div className="container flex h-14 items-center justify-between lg:px-10">
+          <Link
+            href="/properties"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to Listings
           </Link>
-
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-accent" />
-            <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-              Property Comparison
-            </h1>
+            <button
+              onClick={() => {
+                if (navigator.share)
+                  navigator.share({ title: "Property Comparison", url: location.href }).catch(() => {});
+                else navigator.clipboard?.writeText(location.href);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+            >
+              <Share2 className="h-3.5 w-3.5" /> Share
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+            >
+              <Download className="h-3.5 w-3.5" /> Download PDF
+            </button>
           </div>
-          <p className="mt-1 text-sm text-primary-foreground/70">
-            Scored on price (30%), amenities (25%), location (25%), builder
-            (10%) and investment (10%).
-          </p>
+        </div>
+      </div>
 
-          {/* Property header columns */}
-          <div className="mt-6 grid gap-3" style={gridCols}>
-            <div className="hidden sm:block" />
+      <div className="container grid gap-8 py-6 lg:grid-cols-[248px_1fr] lg:px-10">
+        {/* ───────────── LEFT SIDEBAR ───────────── */}
+        <aside className="hidden h-fit flex-col gap-4 lg:sticky lg:top-20 lg:flex">
+          {/* Compare list */}
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-glass">
+            <h2 className="font-display text-sm font-bold text-primary dark:text-foreground">
+              Compare Properties
+            </h2>
+            <p className="mb-3 text-xs text-muted-foreground">{n}/4 Selected</p>
+            <div className="space-y-2">
+              {properties.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-2.5 rounded-xl border border-border p-2"
+                >
+                  <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
+                    <Image src={p.image} alt="" fill className="object-cover" sizes="40px" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs font-bold text-foreground">{p.name}</div>
+                    <div className="truncate text-[11px] text-muted-foreground">{p.locality}</div>
+                  </div>
+                  {n > 2 && (
+                    <button
+                      onClick={() => remove(p.id)}
+                      aria-label="Remove"
+                      className="text-muted-foreground hover:text-danger"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {n < 4 && (
+              <Link href="/properties">
+                <button className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2 text-xs font-semibold text-muted-foreground hover:border-accent/60 hover:text-accent">
+                  <Plus className="h-3.5 w-3.5" /> Add New Property
+                </button>
+              </Link>
+            )}
+          </div>
+
+          {/* Section nav */}
+          <nav className="rounded-2xl border border-border bg-card p-2 shadow-glass">
+            {NAV.map((item) => {
+              const Icon = item.icon;
+              return (
+                <a
+                  key={item.id}
+                  href={`#${item.id}`}
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/10 hover:text-accent"
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </a>
+              );
+            })}
+          </nav>
+
+          {/* Expert card */}
+          <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4 text-center">
+            <Image
+              src="/art/support.png"
+              alt=""
+              width={120}
+              height={90}
+              className="mx-auto h-20 w-auto object-contain"
+            />
+            <h3 className="mt-2 font-display text-sm font-bold text-primary dark:text-foreground">
+              Need Expert Advice?
+            </h3>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Our property experts can help you choose the right property.
+            </p>
+            <a href="tel:+919252996677">
+              <Button variant="accent" size="sm" className="mt-3 w-full">
+                Talk to an Expert
+              </Button>
+            </a>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Call us: +91 92529 96677
+            </p>
+          </div>
+        </aside>
+
+        {/* ───────────── RIGHT CONTENT ───────────── */}
+        <div className="space-y-6">
+          {/* Property header cards with V/S */}
+          <div className="relative grid gap-4" style={valueCols}>
             {properties.map((p) => {
-              const s = result.scores[p.id];
               const isTop = result.ranking[0] === p.id;
               return (
                 <div
                   key={p.id}
                   className={cn(
-                    "relative overflow-hidden rounded-2xl border bg-white/5 p-3 text-center backdrop-blur",
-                    isTop ? "border-accent" : "border-white/10",
+                    "overflow-hidden rounded-2xl border bg-card shadow-glass",
+                    isTop ? "border-accent" : "border-border",
                   )}
                 >
-                  {isTop && (
-                    <span className="absolute right-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
-                      ★ Top pick
-                    </span>
-                  )}
-                  <div className="relative mx-auto h-20 w-full overflow-hidden rounded-xl">
-                    <Image
-                      src={p.image}
-                      alt={p.name}
-                      fill
-                      className="object-cover"
-                      sizes="240px"
-                    />
-                  </div>
-                  <h3 className="mt-2.5 truncate text-sm font-bold">{p.name}</h3>
-                  <p className="truncate text-[11px] text-primary-foreground/60">
-                    {p.builder.name}
-                  </p>
-                  <div
-                    className="mt-1.5 text-lg font-extrabold"
-                    style={{ color: scoreTier(s.overall).color }}
-                  >
-                    {s.overall}
-                    <span className="text-[10px] opacity-60">/100</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <div className="container py-10">
-        {/* Recommendation awards */}
-        <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {awards.map((a) => {
-            const p = properties.find((x) => x.id === a.id)!;
-            const Icon = a.icon;
-            return (
-              <div
-                key={a.label}
-                className="rounded-2xl border border-border bg-card p-4 shadow-glass"
-              >
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  <Icon className={cn("h-4 w-4", a.tint)} />
-                  {a.label}
-                </div>
-                <div className="mt-2 font-display text-base font-bold text-primary dark:text-foreground">
-                  {p.name}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {formatPriceLakh(p.priceLakh)} · {p.locality}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Recommendation score */}
-        <Section icon={Award} title="Recommendation Score">
-          <div className="grid gap-3 p-5" style={gridCols}>
-            <div className="hidden items-center text-sm font-semibold text-muted-foreground sm:flex">
-              Overall score
-            </div>
-            {properties.map((p) => {
-              const s = result.scores[p.id];
-              const tier = scoreTier(s.overall);
-              const best = result.ranking[0] === p.id;
-              return (
-                <div
-                  key={p.id}
-                  className={cn(
-                    "flex flex-col items-center gap-2 rounded-xl p-3",
-                    best && "bg-success/5",
-                  )}
-                >
-                  <ScoreRing value={s.overall} color={tier.color} label="/100" />
-                  <Badge
-                    variant="outline"
-                    style={{ color: tier.color, borderColor: tier.color }}
-                  >
-                    {best && "★ "}
-                    {tier.label}
-                  </Badge>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Factor breakdown bars */}
-          <div className="border-t border-border p-5">
-            <p className="mb-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-              Score breakdown
-            </p>
-            {(Object.keys(FACTOR_LABELS) as (keyof typeof FACTOR_LABELS)[]).map(
-              (key) => {
-                const vals = properties.map(
-                  (p) =>
-                    result.scores[p.id].breakdown.find((b) => b.key === key)!,
-                );
-                const bestVal = Math.max(...vals.map((v) => v.value));
-                return (
-                  <div key={key} className="grid gap-3 py-2" style={gridCols}>
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-                      {FACTOR_LABELS[key]}
-                      <span className="text-[10px] opacity-60">
-                        {Math.round(vals[0].weight * 100)}%
+                  <div className="relative h-40 w-full">
+                    <Image src={p.image} alt={p.name} fill className="object-cover" sizes="420px" />
+                    {isTop && (
+                      <span className="absolute left-3 top-3 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
+                        ★ Top pick
                       </span>
-                    </div>
-                    {vals.map((v, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full transition-[width] duration-700"
-                            style={{
-                              width: `${v.value}%`,
-                              background:
-                                v.value === bestVal
-                                  ? "hsl(var(--accent))"
-                                  : "hsl(var(--primary))",
-                            }}
-                          />
-                        </div>
-                        <span
-                          className={cn(
-                            "w-7 text-right text-xs font-bold tabular-nums",
-                            v.value === bestVal
-                              ? "text-accent"
-                              : "text-muted-foreground",
-                          )}
-                        >
-                          {v.value}
-                        </span>
-                      </div>
-                    ))}
+                    )}
                   </div>
-                );
-              },
+                  <div className="p-4">
+                    <h3 className="font-display text-base font-bold text-primary dark:text-foreground">
+                      {p.name}
+                    </h3>
+                    <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 text-accent" /> {p.locality}
+                    </p>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleShortlist(p.id)}
+                        className={cn(
+                          "inline-flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-semibold transition-colors",
+                          isSaved(p.id)
+                            ? "border-accent bg-accent/10 text-accent"
+                            : "border-border text-foreground hover:bg-muted",
+                        )}
+                      >
+                        <Heart
+                          className={cn("h-3.5 w-3.5", isSaved(p.id) && "fill-accent")}
+                        />
+                        Shortlist
+                      </button>
+                      <a href="tel:+919252996677">
+                        <Button variant="accent" size="sm" className="w-full">
+                          View Details
+                        </Button>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* V/S badge — only for a 2-way comparison, like the design */}
+            {n === 2 && (
+              <div className="absolute left-1/2 top-[80px] z-10 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-card bg-primary text-xs font-extrabold text-primary-foreground shadow-lift">
+                V/S
+              </div>
             )}
           </div>
-        </Section>
 
-        {/* Overview */}
-        <Section icon={ClipboardList} title="Property Overview">
-          <Row label="Builder" gridCols={gridCols}>
-            {properties.map((p) => (
-              <Cell key={p.id}>{p.builder.name}</Cell>
-            ))}
-          </Row>
-          <Row label="Location" gridCols={gridCols}>
-            {properties.map((p) => (
-              <Cell key={p.id}>{p.locality}</Cell>
-            ))}
-          </Row>
-          <Row label="Property type" gridCols={gridCols}>
-            {properties.map((p) => (
-              <Cell key={p.id}>
-                {p.configs} {p.kind}
-              </Cell>
-            ))}
-          </Row>
-          <Row label="RERA ID" gridCols={gridCols}>
-            {properties.map((p) => (
-              <Cell key={p.id} className="text-xs">
-                <ShieldCheck className="mr-1 inline h-3.5 w-3.5 text-success" />
-                {p.reraId}
-              </Cell>
-            ))}
-          </Row>
-          <Row label="Possession" gridCols={gridCols} last>
-            {properties.map((p) => (
-              <Cell key={p.id}>
-                <CalendarClock className="mr-1 inline h-3.5 w-3.5 text-accent" />
-                {p.possessionDate}
-              </Cell>
-            ))}
-          </Row>
-        </Section>
-
-        {/* Pricing */}
-        <Section icon={IndianRupee} title="Price Comparison">
-          <Row label="Starting price" gridCols={gridCols}>
-            {properties.map((p, i) => (
-              <Cell key={p.id} best={i === lowestIdx(priceArr)}>
-                {formatPriceLakh(p.priceLakh)}
-              </Cell>
-            ))}
-          </Row>
-          <Row label="Price / sq.ft" gridCols={gridCols}>
-            {properties.map((p, i) => (
-              <Cell key={p.id} best={i === lowestIdx(sqftArr)}>
-                ₹{p.pricePerSqFt.toLocaleString("en-IN")}
-              </Cell>
-            ))}
-          </Row>
-          <Row label="Price range" gridCols={gridCols} last>
-            {properties.map((p) => (
-              <Cell key={p.id} className="text-xs">
-                {p.priceRangeLabel}
-              </Cell>
-            ))}
-          </Row>
-        </Section>
-
-        {/* Amenities */}
-        <Section icon={Waves} title="Amenities">
-          {AMENITIES.map((a, idx) => (
-            <Row
-              key={a.key}
-              label={a.label}
-              gridCols={gridCols}
-              last={idx === AMENITIES.length - 1}
-            >
-              {properties.map((p) => (
-                <Cell key={p.id}>
-                  {p.amenities[a.key] ? (
-                    <Check className="mx-auto h-5 w-5 text-success" />
-                  ) : (
-                    <X className="mx-auto h-5 w-5 text-danger/60" />
-                  )}
-                </Cell>
-              ))}
-            </Row>
-          ))}
-        </Section>
-
-        {/* Location & connectivity */}
-        <Section icon={MapPin} title="Location & Connectivity">
-          {(
-            [
-              ["Metro station", "metroKm"],
-              ["Hospital", "hospitalKm"],
-              ["School", "schoolKm"],
-              ["Airport", "airportKm"],
-            ] as const
-          ).map(([label, key], idx) => {
-            const arr = properties.map((p) => p.location[key]);
-            return (
-              <Row key={key} label={label} gridCols={gridCols}>
-                {properties.map((p, i) => (
-                  <Cell key={p.id} best={i === lowestIdx(arr)}>
-                    {p.location[key]} km
-                  </Cell>
-                ))}
-              </Row>
-            );
-          })}
-          <Row label="Connectivity index" gridCols={gridCols} last>
-            {properties.map((p, i) => (
-              <Cell
-                key={p.id}
-                best={
-                  i ===
-                  highestIdx(properties.map((x) => x.location.connectivityIndex))
-                }
-              >
-                {p.location.connectivityIndex}/100
-              </Cell>
-            ))}
-          </Row>
-        </Section>
-
-        {/* Investment analysis */}
-        <Section icon={TrendingUp} title="Investment Analysis">
-          <Row label="Appreciation (p.a.)" gridCols={gridCols}>
-            {properties.map((p, i) => (
-              <Cell
-                key={p.id}
-                best={
-                  i ===
-                  highestIdx(properties.map((x) => x.investment.appreciationPct))
-                }
-              >
-                {p.investment.appreciationPct}%
-              </Cell>
-            ))}
-          </Row>
-          <Row label="Rental yield" gridCols={gridCols}>
-            {properties.map((p, i) => (
-              <Cell
-                key={p.id}
-                best={
-                  i ===
-                  highestIdx(properties.map((x) => x.investment.rentalYieldPct))
-                }
-              >
-                {p.investment.rentalYieldPct}%
-              </Cell>
-            ))}
-          </Row>
-          <Row label="Demand index" gridCols={gridCols}>
-            {properties.map((p, i) => (
-              <Cell
-                key={p.id}
-                best={
-                  i ===
-                  highestIdx(properties.map((x) => x.investment.demandIndex))
-                }
-              >
-                {p.investment.demandIndex}/100
-              </Cell>
-            ))}
-          </Row>
-          <Row label="Investment score" gridCols={gridCols} last>
-            {properties.map((p) => (
-              <Cell
-                key={p.id}
-                best={p.id === result.bestInvestmentId}
-                className="font-extrabold"
-              >
-                {result.scores[p.id].investmentScore}/100
-              </Cell>
-            ))}
-          </Row>
-        </Section>
-
-        {/* Floor plans */}
-        <Section icon={LayoutPanelTop} title="Floor Plans">
-          <div className="grid gap-3 p-5" style={gridCols}>
-            <div className="hidden text-sm font-semibold text-muted-foreground sm:block">
-              Layouts
+          {/* Quick Overview */}
+          <Card id="overview">
+            <CardTitle>Quick Overview</CardTitle>
+            <div className="mt-4">
+              <OverviewTable
+                n={n}
+                rows={[
+                  { label: "Starting Price", values: properties.map((p) => formatPriceLakh(p.priceLakh) + "*") },
+                  { label: "Configurations", values: properties.map((p) => p.configs) },
+                  { label: "Total Area", values: properties.map((p) => `${p.areaAcres} Acres`) },
+                  { label: "Towers", values: properties.map((p) => (p.towers ? `${p.towers} Towers` : "—")) },
+                  { label: "Possession", values: properties.map((p) => p.possessionDate.replace(/^.*· /, "")) },
+                  { label: "RERA ID", values: properties.map((p) => p.reraId) },
+                ]}
+              />
             </div>
-            {properties.map((p) => (
-              <div key={p.id} className="space-y-3">
-                {p.floorPlans.map((fp) => (
-                  <div
-                    key={fp.config}
-                    className="overflow-hidden rounded-xl border border-border bg-background"
-                  >
-                    <div className="relative h-32 w-full bg-muted">
-                      <Image
-                        src={fp.image}
-                        alt={`${p.name} ${fp.config}`}
-                        fill
-                        className="object-contain p-1"
-                        sizes="240px"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between px-3 py-2 text-xs">
-                      <span className="font-bold">{fp.config}</span>
-                      <span className="text-muted-foreground">
-                        {fp.areaSqFt} sq.ft · {fp.priceLabel}
+            <MoreLink label="View More Details" />
+          </Card>
+
+          {/* Price & Configuration */}
+          <SectionCard id="price" icon={IndianRupee} title="Price & Configuration">
+            <OverviewTable
+              n={n}
+              rows={[
+                {
+                  label: "Starting Price",
+                  values: properties.map((p) => formatPriceLakh(p.priceLakh) + "*"),
+                  subs: properties.map(() => "Onwards"),
+                },
+                {
+                  label: "Configurations",
+                  values: properties.map((p) => p.configs),
+                  subs: properties.map((p) => sqftRange(p)),
+                },
+              ]}
+            />
+            <MoreLink label="View Full Price Breakup" />
+          </SectionCard>
+
+          {/* Amenities */}
+          <SectionCard id="amenities" icon={Dumbbell} title="Amenities">
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+              {AMENITIES.map((a) => (
+                <div key={a.key} className="grid items-center gap-2 px-4 py-2.5" style={{ gridTemplateColumns: `1fr repeat(${n}, 64px)` }}>
+                  <span className="text-sm font-medium text-foreground">{a.label}</span>
+                  {properties.map((p) => (
+                    <span key={p.id} className="flex justify-center">
+                      {p.amenities[a.key] ? (
+                        <Check className="h-5 w-5 rounded-full bg-success/15 p-0.5 text-success" />
+                      ) : (
+                        <X className="h-5 w-5 rounded-full bg-danger/15 p-0.5 text-danger/70" />
+                      )}
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <MoreLink label="View All Amenities" />
+          </SectionCard>
+
+          {/* Location & Connectivity */}
+          <SectionCard id="location" icon={MapPin} title="Location & Connectivity">
+            <p className="mb-3 text-sm font-bold text-foreground">Connectivity</p>
+            <div className="grid gap-4" style={valueCols}>
+              {properties.map((p) => (
+                <div key={p.id} className="space-y-3">
+                  <ul className="space-y-1.5">
+                    {connectivity(p).map((c) => (
+                      <li key={c.label} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="flex items-center gap-1.5 text-muted-foreground">
+                          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                          {c.label}
+                        </span>
+                        <span className="shrink-0 font-semibold text-foreground">{c.value}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="h-44 w-full overflow-hidden rounded-xl">
+                    <LocationMap property={p} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          {/* Floor Plans */}
+          <SectionCard id="floorplans" icon={LayoutPanelTop} title="Floor Plans">
+            <div className="grid gap-4" style={valueCols}>
+              {properties.map((p) => (
+                <div key={p.id}>
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {p.floorPlans.map((fp) => (
+                      <span key={fp.config} className="rounded-md bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">
+                        {fp.config}
                       </span>
+                    ))}
+                  </div>
+                  {p.floorPlans.slice(0, 1).map((fp) => (
+                    <div key={fp.config} className="overflow-hidden rounded-xl border border-border bg-background">
+                      <div className="relative h-36 w-full bg-muted">
+                        <Image src={fp.image} alt={`${p.name} ${fp.config}`} fill className="object-contain p-1" sizes="360px" />
+                      </div>
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div>
+                          <div className="text-sm font-bold">{fp.config}</div>
+                          <div className="text-[11px] text-muted-foreground">{fp.areaSqFt} sq.ft</div>
+                        </div>
+                        <span className="text-xs font-semibold text-accent">View Floor Plan</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          {/* Investment Potential */}
+          <SectionCard id="investment" icon={TrendingUp} title="Investment Potential">
+            <div className="grid gap-4" style={valueCols}>
+              {properties.map((p) => {
+                const s = result.scores[p.id];
+                const rating = Math.round((s.investmentScore / 100) * 5 * 10) / 10;
+                const color = scoreTier(s.investmentScore).color;
+                return (
+                  <div key={p.id} className="flex items-start gap-4">
+                    <RatingRing rating={rating} color={color} />
+                    <ul className="space-y-1.5 pt-1">
+                      {investmentBullets(p).map((b) => (
+                        <li key={b.label} className="flex items-center gap-1.5 text-xs">
+                          {b.ok ? (
+                            <Check className="h-3.5 w-3.5 text-success" />
+                          ) : (
+                            <span className="h-3.5 w-3.5 text-center text-muted-foreground">·</span>
+                          )}
+                          <span className={b.ok ? "text-foreground" : "text-muted-foreground"}>
+                            {b.label}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+            <MoreLink label="View Detailed Analysis" />
+          </SectionCard>
+
+          {/* Best For */}
+          <SectionCard id="bestfor" icon={Users} title="Best For">
+            <div className="grid gap-4" style={valueCols}>
+              {properties.map((p) => {
+                const persona = bestForPersona(p, result.scores[p.id].bestFor);
+                return (
+                  <div key={p.id} className="flex items-start gap-3">
+                    <Image
+                      src={persona.image}
+                      alt=""
+                      width={56}
+                      height={56}
+                      className="h-14 w-14 shrink-0 rounded-xl bg-muted object-contain p-1.5"
+                    />
+                    <div>
+                      <div className="text-sm font-bold text-primary dark:text-foreground">
+                        {persona.title}
+                      </div>
+                      <ul className="mt-1 space-y-0.5">
+                        {persona.bullets.map((b) => (
+                          <li key={b} className="text-xs text-muted-foreground">
+                            {b}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* Best for */}
-        <Section icon={Users} title="Best For">
-          <div className="grid gap-3 p-5" style={gridCols}>
-            <div className="hidden text-sm font-semibold text-muted-foreground sm:block">
-              Ideal buyer
+                );
+              })}
             </div>
-            {properties.map((p) => (
-              <div key={p.id} className="flex flex-wrap justify-center gap-1.5">
-                {result.scores[p.id].bestFor.map((tag) => (
-                  <Badge key={tag} variant="accent">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            ))}
-          </div>
-        </Section>
+          </SectionCard>
 
-        {/* Footer actions */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/properties">
-            <Button variant="outline" size="md">
-              <ArrowLeft className="h-4 w-4" /> Edit selection
-            </Button>
-          </Link>
-          <a href="tel:+919252996677">
-            <Button variant="accent" size="md">
-              <Building2 className="h-4 w-4" /> Book a site visit
-            </Button>
-          </a>
+          {/* Similar Properties */}
+          <div id="similar" className="scroll-mt-20">
+            <h3 className="mb-4 font-display text-lg font-bold text-primary dark:text-foreground">
+              Similar Properties
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {similar.map((p) => (
+                <div key={p.id} className="overflow-hidden rounded-2xl border border-border bg-card shadow-glass">
+                  <div className="relative h-32 w-full">
+                    <Image src={p.image} alt={p.name} fill className="object-cover" sizes="280px" />
+                  </div>
+                  <div className="p-3">
+                    <div className="truncate text-sm font-bold text-primary dark:text-foreground">
+                      {p.name}
+                    </div>
+                    <div className="mb-2 flex items-center gap-1 truncate text-[11px] text-muted-foreground">
+                      <MapPin className="h-3 w-3 text-accent" /> {p.locality}
+                    </div>
+                    <Link href="/properties">
+                      <Button variant="subtle" size="sm" className="w-full">
+                        View
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-/* ---- presentational helpers --------------------------------------------- */
+/* ─────────────────────────── helpers ─────────────────────────── */
 
-function Section({
-  icon: Icon,
-  title,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  children: React.ReactNode;
-}) {
-  // Critical comparison data must always be visible — never gate it behind a
-  // scroll/mount animation (a backgrounded tab pauses RAF and would otherwise
-  // leave content invisible). The `animate-fade-up` utility adds a one-shot CSS
-  // entrance with fill-mode `both`, so the resting state is always opacity 1.
+function Card({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <section className="mb-6 overflow-hidden rounded-2xl border border-border bg-card shadow-glass">
-      <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-5 py-3.5">
-        <Icon className="h-4 w-4 text-accent" />
-        <h2 className="font-display text-sm font-bold uppercase tracking-wide text-primary dark:text-foreground">
-          {title}
-        </h2>
-      </div>
+    <section id={id} className="scroll-mt-20 rounded-2xl border border-border bg-card p-5 shadow-glass">
       {children}
     </section>
   );
 }
 
-function Row({
-  label,
+function CardTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="font-display text-base font-bold text-primary dark:text-foreground">
+      {children}
+    </h2>
+  );
+}
+
+function SectionCard({
+  id,
+  icon: Icon,
+  title,
   children,
-  gridCols,
-  last,
 }: {
-  label: string;
+  id: string;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
   children: React.ReactNode;
-  gridCols: React.CSSProperties;
-  last?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "grid items-center gap-3 px-5 py-3.5",
-        !last && "border-b border-border",
-      )}
-      style={gridCols}
-    >
-      <div className="text-sm font-medium text-muted-foreground">{label}</div>
-      {children}
+    <section id={id} className="scroll-mt-20 rounded-2xl border border-border bg-card p-5 shadow-glass">
+      <div className="grid gap-5 md:grid-cols-[160px_1fr]">
+        <div className="flex items-start gap-2.5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10">
+            <Icon className="h-5 w-5 text-accent" />
+          </span>
+          <h2 className="pt-1.5 font-display text-sm font-bold leading-tight text-primary dark:text-foreground">
+            {title}
+          </h2>
+        </div>
+        <div>{children}</div>
+      </div>
+    </section>
+  );
+}
+
+type OverviewItem = { label: string; values: string[]; subs?: string[] };
+
+/** Comparison table where the centre labels sit inside a SINGLE continuous
+ *  purple band spanning all rows (the design's signature 2-up style). Falls back
+ *  to a label-left layout for 3–4 columns. */
+function OverviewTable({ rows, n }: { rows: OverviewItem[]; n: number }) {
+  if (n === 2) {
+    return (
+      <div
+        className="relative grid overflow-hidden rounded-xl border border-border"
+        style={{ gridTemplateColumns: "1fr minmax(150px, auto) 1fr" }}
+      >
+        {/* one continuous purple band behind the centre labels */}
+        <div
+          className="rounded-xl"
+          style={{
+            gridColumn: 2,
+            gridRow: `1 / span ${rows.length}`,
+            background: "hsl(var(--accent) / 0.12)",
+          }}
+        />
+        {rows.map((r, i) => (
+          <React.Fragment key={r.label}>
+            <div
+              className={cn(
+                "flex flex-col items-center justify-center px-4 py-3.5 text-center",
+                i > 0 && "border-t border-border",
+              )}
+              style={{ gridColumn: 1, gridRow: i + 1 }}
+            >
+              <span className="text-sm font-bold text-foreground">{r.values[0]}</span>
+              {r.subs?.[0] && (
+                <span className="text-[11px] text-muted-foreground">{r.subs[0]}</span>
+              )}
+            </div>
+            <div
+              className={cn(
+                "relative z-10 flex items-center justify-center px-4 py-3.5 text-center",
+                i > 0 && "border-t border-border/50",
+              )}
+              style={{ gridColumn: 2, gridRow: i + 1 }}
+            >
+              <span className="text-xs font-bold uppercase tracking-wide text-accent">
+                {r.label}
+              </span>
+            </div>
+            <div
+              className={cn(
+                "flex flex-col items-center justify-center px-4 py-3.5 text-center",
+                i > 0 && "border-t border-border",
+              )}
+              style={{ gridColumn: 3, gridRow: i + 1 }}
+            >
+              <span className="text-sm font-bold text-foreground">{r.values[1]}</span>
+              {r.subs?.[1] && (
+                <span className="text-[11px] text-muted-foreground">{r.subs[1]}</span>
+              )}
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  }
+
+  // 3–4 columns: label on the left, values across.
+  return (
+    <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+      {rows.map((r) => (
+        <div
+          key={r.label}
+          className="grid items-center gap-2 px-4 py-2.5"
+          style={{ gridTemplateColumns: `140px repeat(${n}, 1fr)` }}
+        >
+          <span className="text-xs font-bold uppercase tracking-wide text-accent">
+            {r.label}
+          </span>
+          {r.values.map((v, i) => (
+            <div key={i} className="text-center">
+              <div className="text-sm font-bold text-foreground">{v}</div>
+              {r.subs?.[i] && (
+                <div className="text-[11px] text-muted-foreground">{r.subs[i]}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
 
-function Cell({
-  children,
-  best,
-  className,
-}: {
-  children: React.ReactNode;
-  best?: boolean;
-  className?: string;
-}) {
+function MoreLink({ label }: { label: string }) {
   return (
-    <div
-      className={cn(
-        "rounded-lg px-2 py-1.5 text-center text-sm font-semibold text-foreground",
-        best && "bg-success/10 text-success",
-        className,
-      )}
-    >
-      {children}
-      {best && <span className="ml-1 text-[10px]">★</span>}
+    <button className="mt-3 flex w-full items-center justify-center gap-1 text-xs font-semibold text-accent hover:underline">
+      {label} <ChevronDown className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
+function RatingRing({ rating, color }: { rating: number; color: string }) {
+  const size = 72;
+  const stroke = 6;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c - (rating / 5) * c;
+  return (
+    <div className="relative inline-flex shrink-0 items-center justify-center">
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center leading-none">
+        <span className="font-display text-lg font-extrabold" style={{ color }}>
+          {rating.toFixed(1)}
+        </span>
+        <span className="text-[9px] text-muted-foreground">/5</span>
+      </div>
     </div>
   );
+}
+
+/* ---- data → display mappers (no change to underlying data) -------------- */
+
+function sqftRange(p: Property): string {
+  const areas = p.floorPlans.map((f) => f.areaSqFt);
+  return `${Math.min(...areas).toLocaleString("en-IN")} – ${Math.max(...areas).toLocaleString("en-IN")} sq.ft`;
+}
+
+function connectivity(p: Property) {
+  return [
+    { label: "Metro Station", value: `${p.location.metroKm} km` },
+    { label: "Hospital", value: `${p.location.hospitalKm} km` },
+    { label: "School", value: `${p.location.schoolKm} km` },
+    { label: "Airport", value: `${p.location.airportKm} km` },
+    { label: "Connectivity Score", value: `${p.location.connectivityIndex}/100` },
+  ];
+}
+
+function investmentBullets(p: Property) {
+  return [
+    { label: "High Appreciation Potential", ok: p.investment.appreciationPct >= 9 },
+    { label: "Upcoming Infrastructure Boost", ok: p.location.connectivityIndex >= 78 },
+    { label: "Reputed Developer", ok: p.builder.rating >= 4.3 },
+    { label: "High Rental Demand", ok: p.investment.rentalYieldPct >= 3.2 },
+  ];
+}
+
+function bestForPersona(p: Property, tags: string[]) {
+  if (tags.includes("Families")) {
+    return {
+      image: "/art/persona-family.png",
+      title: "End users & families",
+      bullets: [
+        "Proximity to amenities & green spaces",
+        "Larger open areas",
+        "Peaceful living environment",
+      ],
+    };
+  }
+  if (tags.includes("Luxury Buyers")) {
+    return {
+      image: "/art/persona-traveler.png",
+      title: "Luxury buyers",
+      bullets: ["Premium specifications", "Gated privacy", "Prestige address"],
+    };
+  }
+  return {
+    image: "/art/persona-traveler.png",
+    title: "Investors & frequent travellers",
+    bullets: [
+      "Earlier possession upside",
+      "Better connectivity",
+      "High rental yield potential",
+    ],
+  };
 }

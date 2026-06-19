@@ -96,6 +96,10 @@ export interface Property {
   priceLakh: number;
   pricePerSqFt: number;
   priceRangeLabel: string;
+  /** Total project land area in acres (shown in Quick Overview). */
+  areaAcres: number;
+  /** Number of towers (0 for villa/plotted projects). */
+  towers: number;
   image: string;
   /** Tailwind-friendly gradient stops for the card fallback / accent. */
   gradient: [string, string];

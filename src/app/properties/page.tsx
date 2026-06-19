@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getDataSource } from "@/lib/data-source";
-import { SelectionView } from "@/components/selection/selection-view";
+import { PropertyExplorer } from "@/components/listing/property-explorer";
 
 export const metadata: Metadata = {
   title: "Select properties · Creators Home",
@@ -9,7 +9,12 @@ export const metadata: Metadata = {
 };
 
 export default async function PropertiesPage() {
-  // Data flows through the data-source seam (local today, WordPress later).
   const properties = await getDataSource().list();
-  return <SelectionView initial={properties} />;
+  return (
+    <PropertyExplorer
+      initial={properties}
+      title="Select properties to compare"
+      subtitle="Pick 2–4 homes and hit Compare to see a full side-by-side analysis with a recommendation score."
+    />
+  );
 }

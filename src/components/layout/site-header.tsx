@@ -3,10 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Phone, GitCompareArrows } from "lucide-react";
+import { GitCompareArrows } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { AuthNav } from "@/components/auth/auth-nav";
 import { useComparison } from "@/store/comparison";
 import { cn } from "@/lib/utils";
 
@@ -78,12 +79,7 @@ export function SiteHeader() {
             </Button>
           </Link>
           <ThemeToggle />
-          <a href="tel:+919252996677">
-            <Button variant="accent" size="sm" className="gap-1.5">
-              <Phone className="h-4 w-4" />
-              Quick Call
-            </Button>
-          </a>
+          <AuthNav />
         </div>
       </div>
     </header>

@@ -75,6 +75,8 @@ export const properties: Property[] = [
     priceLakh: 65,
     pricePerSqFt: 3200,
     priceRangeLabel: "₹65 L – ₹1.05 Cr",
+    areaAcres: 12,
+    towers: 11,
     image: "/properties/towers-courtyard.jpg",
     gradient: ["#0f3460", "#16697a"],
     amenities: {
@@ -120,6 +122,8 @@ export const properties: Property[] = [
     priceLakh: 320,
     pricePerSqFt: 14800,
     priceRangeLabel: "₹3.2 Cr – ₹6.4 Cr",
+    areaAcres: 13,
+    towers: 9,
     image: "/properties/render-blue.jpg",
     gradient: ["#14532d", "#15803d"],
     amenities: {
@@ -165,6 +169,8 @@ export const properties: Property[] = [
     priceLakh: 95,
     pricePerSqFt: 5400,
     priceRangeLabel: "₹95 L – ₹1.9 Cr",
+    areaAcres: 10,
+    towers: 9,
     image: "/properties/render-garden-a.jpg",
     gradient: ["#581c87", "#7c3aed"],
     amenities: {
@@ -210,6 +216,8 @@ export const properties: Property[] = [
     priceLakh: 650,
     pricePerSqFt: 16500,
     priceRangeLabel: "₹6.5 Cr – ₹12 Cr",
+    areaAcres: 25,
+    towers: 0,
     image: "/properties/villa-luxury.png",
     gradient: ["#7c2d12", "#b45309"],
     amenities: {
@@ -255,6 +263,8 @@ export const properties: Property[] = [
     priceLakh: 52,
     pricePerSqFt: 2950,
     priceRangeLabel: "₹52 L – ₹78 L",
+    areaAcres: 8,
+    towers: 7,
     image: "/properties/render-garden-b.jpg",
     gradient: ["#0e7490", "#0891b2"],
     amenities: {
@@ -300,6 +310,8 @@ export const properties: Property[] = [
     priceLakh: 410,
     pricePerSqFt: 17200,
     priceRangeLabel: "₹4.1 Cr – ₹8.2 Cr",
+    areaAcres: 18,
+    towers: 7,
     image: "/properties/villa-aerial.jpg",
     gradient: ["#831843", "#9d174d"],
     amenities: {
