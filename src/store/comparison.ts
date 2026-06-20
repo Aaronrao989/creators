@@ -2,9 +2,9 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { MIN_COMPARE, MAX_COMPARE } from "@/lib/constants";
 
-export const MIN_COMPARE = 2;
-export const MAX_COMPARE = 4;
+export { MIN_COMPARE, MAX_COMPARE };
 
 interface ComparisonState {
   selected: string[]; // property ids

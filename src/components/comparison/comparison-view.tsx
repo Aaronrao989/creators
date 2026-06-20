@@ -25,7 +25,6 @@ import {
   X,
 } from "lucide-react";
 import type { AmenityKey, Property } from "@/lib/types";
-import { properties as ALL_PROPERTIES } from "@/data/properties";
 import { compareProperties, scoreTier } from "@/lib/scoring";
 import { useComparison } from "@/store/comparison";
 import { useAuth, selectShortlistIds } from "@/store/auth";
@@ -56,7 +55,13 @@ const AMENITIES: { key: AmenityKey; label: string }[] = [
   { key: "security", label: "24/7 Security" },
 ];
 
-export function ComparisonView({ properties }: { properties: Property[] }) {
+export function ComparisonView({
+  properties,
+  similar = [],
+}: {
+  properties: Property[];
+  similar?: Property[];
+}) {
   const n = properties.length;
   const result = React.useMemo(() => compareProperties(properties), [properties]);
   const remove = useComparison((s) => s.remove);
@@ -76,10 +81,6 @@ export function ComparisonView({ properties }: { properties: Property[] }) {
   };
 
   const valueCols = { gridTemplateColumns: `repeat(${n}, minmax(0,1fr))` };
-
-  const similar = ALL_PROPERTIES.filter(
-    (p) => !properties.some((sel) => sel.id === p.id),
-  ).slice(0, 3);
 
   return (
     <div className="bg-muted/30">

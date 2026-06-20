@@ -110,6 +110,25 @@ export interface Property {
   highlights: string[];
 }
 
+/** A user/visitor review of a property. */
+export interface PropertyReview {
+  id: string;
+  propertyId: string;
+  authorName: string;
+  /** 1–5 stars. */
+  rating: number;
+  comment: string;
+  createdAt: string; // ISO timestamp
+}
+
+/** A user's saved comparison (a named set of properties). */
+export interface SavedComparison {
+  id: string;
+  name: string | null;
+  propertyIds: string[];
+  createdAt: string;
+}
+
 /* ------------------------------------------------------------------ */
 /* Comparison / scoring outputs                                        */
 /* ------------------------------------------------------------------ */

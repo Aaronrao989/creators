@@ -1,0 +1,232 @@
+// Creators Home — property comparison platform
+// Normalised PostgreSQL schema. The repository layer maps these rows back to the
+// frontend domain types in `src/lib/types.ts`, so the UI contract is unchanged.
+//
+// Design notes:
+// - UUID primary keys everywhere (@db.Uuid).
+// - city / kind / possession / amenity key are stored as text and validated by
+//   zod at the service/API layer (the values equal the frontend string unions,
+//   which keeps mapping trivial and avoids Prisma-enum identifier limits).
+// - 1:1 metrics (Pricing, LocationMetric, InvestmentMetric) via a unique FK.
+// - 1:many for Configurations, Amenities, Images, Videos, Reviews.
+// - Cascade delete from Property/User to their children.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────── Builders ─────────────────────────
+model Builder {
+  id                String     @id @default(uuid()) @db.Uuid
+  name              String     @unique
+  rating            Float      @default(0) // 0–5 market reputation
+  yearEstablished   Int // maps to frontend `established`
+  deliveredProjects Int        @default(0)
+  logoColor         String
+  description       String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  properties        Property[]
+
+  @@index([name])
+  @@map("builders")
+}
+
+// ───────────────────────── Properties ─────────────────────────
+model Property {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  subtitle       String   @default("")
+  builderId      String   @db.Uuid
+  city           String
+  locality       String
+  kind           String // Apartment | Villa | Plot | Builder Floor
+  possession     String // Ready to Move | Under Construction | New Launch
+  possessionDate String // display label, e.g. "Ready · Dec 2023"
+  reraId         String   @unique
+  areaAcres      Float    @default(0)
+  towers         Int      @default(0)
+  configsLabel   String // e.g. "2 / 3 BHK"
+  gradientFrom   String   @default("#0f3460")
+  gradientTo     String   @default("#16697a")
+  highlights     String[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  builder        Builder                   @relation(fields: [builderId], references: [id], onDelete: Restrict)
+  pricing        Pricing?
+  location       LocationMetric?
+  investment     InvestmentMetric?
+  configurations Configuration[]
+  amenities      Amenity[]
+  images         PropertyImage[]
+  videos         PropertyVideo[]
+  reviews        Review[]
+  savedIn        SavedComparisonProperty[]
+
+  @@index([builderId])
+  @@index([city])
+  @@index([kind])
+  @@index([possession])
+  @@map("properties")
+}
+
+// ───────────────────────── Pricing (1:1) ─────────────────────────
+model Pricing {
+  id                String   @id @default(uuid()) @db.Uuid
+  propertyId        String   @unique @db.Uuid
+  startingPriceLakh Float // INR lakhs (1 Cr = 100 lakhs)
+  pricePerSqFt      Int
+  priceRangeLabel   String
+  minPriceLakh      Float?
+  maxPriceLakh      Float?
+  property          Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([startingPriceLakh])
+  @@map("pricing")
+}
+
+// ───────────────────── Configurations / floor plans (1:many) ─────────────────────
+model Configuration {
+  id             String   @id @default(uuid()) @db.Uuid
+  propertyId     String   @db.Uuid
+  label          String // e.g. "2 BHK"
+  areaSqFt       Int
+  priceLabel     String
+  floorPlanImage String
+  sortOrder      Int      @default(0)
+  property       Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("configurations")
+}
+
+// ───────────────────────── Amenities (1:many) ─────────────────────────
+model Amenity {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @db.Uuid
+  key        String // AmenityKey: pool | gym | clubhouse | ...
+  label      String
+  available  Boolean  @default(false)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, key])
+  @@index([propertyId])
+  @@map("amenities")
+}
+
+// ───────────────────────── Location metrics (1:1) ─────────────────────────
+model LocationMetric {
+  id                String   @id @default(uuid()) @db.Uuid
+  propertyId        String   @unique @db.Uuid
+  metroKm           Float
+  hospitalKm        Float
+  schoolKm          Float
+  airportKm         Float
+  connectivityIndex Int // 0–100
+  property          Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("location_metrics")
+}
+
+// ───────────────────────── Investment metrics (1:1) ─────────────────────────
+model InvestmentMetric {
+  id              String   @id @default(uuid()) @db.Uuid
+  propertyId      String   @unique @db.Uuid
+  appreciationPct Float
+  rentalYieldPct  Float
+  demandIndex     Int // 0–100
+  property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("investment_metrics")
+}
+
+// ───────────────────────── Property images (1:many) ─────────────────────────
+model PropertyImage {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @db.Uuid
+  url        String
+  alt        String?
+  isPrimary  Boolean  @default(false)
+  sortOrder  Int      @default(0)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_images")
+}
+
+// ───────────────────────── Property videos (1:many) ─────────────────────────
+model PropertyVideo {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @db.Uuid
+  url        String
+  title      String?
+  sortOrder  Int      @default(0)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_videos")
+}
+
+// ───────────────────────── Reviews (1:many) ─────────────────────────
+model Review {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @db.Uuid
+  userId     String?  @db.Uuid
+  authorName String
+  rating     Int // 1–5
+  comment    String
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([propertyId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+// ───────────────────────── Users ─────────────────────────
+model User {
+  id               String            @id @default(uuid()) @db.Uuid
+  name             String
+  email            String            @unique
+  passwordHash     String? // null for OAuth (e.g. Google) accounts
+  provider         String            @default("email") // email | google
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  reviews          Review[]
+  savedComparisons SavedComparison[]
+
+  @@map("users")
+}
+
+// ───────────────────────── Saved comparisons ─────────────────────────
+model SavedComparison {
+  id        String                    @id @default(uuid()) @db.Uuid
+  userId    String                    @db.Uuid
+  name      String?
+  createdAt DateTime                  @default(now())
+  user      User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     SavedComparisonProperty[]
+
+  @@index([userId])
+  @@map("saved_comparisons")
+}
+
+// Join table: which properties belong to a saved comparison (many-to-many).
+model SavedComparisonProperty {
+  id                String          @id @default(uuid()) @db.Uuid
+  savedComparisonId String          @db.Uuid
+  propertyId        String          @db.Uuid
+  savedComparison   SavedComparison @relation(fields: [savedComparisonId], references: [id], onDelete: Cascade)
+  property          Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([savedComparisonId, propertyId])
+  @@index([propertyId])
+  @@map("saved_comparison_properties")
+}

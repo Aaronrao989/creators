@@ -19,7 +19,7 @@ import {
   Tag,
 } from "lucide-react";
 import type { AmenityKey, City, Possession, Property } from "@/lib/types";
-import { CITIES, POSSESSIONS } from "@/lib/data-source";
+import { CITIES, POSSESSIONS } from "@/lib/constants";
 import { MIN_COMPARE, useComparison } from "@/store/comparison";
 import { useAuth } from "@/store/auth";
 import { useMounted } from "@/lib/use-mounted";
