@@ -2,7 +2,7 @@
   "name": "creators-home-compare",
   "version": "0.1.0",
   "private": true,
-  "description": "Creators Home — premium property comparison platform (frontend + mock data layer).",
+  "description": "Creators Home \u2014 premium property comparison platform (frontend + mock data layer).",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,13 +14,15 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:import": "tsx src/lib/import/run-import.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "exceljs": "^4.4.0",
     "framer-motion": "^11.3.19",
     "lucide-react": "^0.427.0",
     "next": "14.2.5",

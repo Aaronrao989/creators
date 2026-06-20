@@ -1,15 +1,14 @@
 // Creators Home — property comparison platform
-// Normalised PostgreSQL schema. The repository layer maps these rows back to the
-// frontend domain types in `src/lib/types.ts`, so the UI contract is unchanged.
+// Schema v2: redesigned around the REAL client intake sheets (rich key-value
+// form + per-tower configuration matrix). The repository layer maps these rows
+// back to the frontend `Property` type in src/lib/types.ts (UI contract intact).
 //
-// Design notes:
-// - UUID primary keys everywhere (@db.Uuid).
-// - city / kind / possession / amenity key are stored as text and validated by
-//   zod at the service/API layer (the values equal the frontend string unions,
-//   which keeps mapping trivial and avoids Prisma-enum identifier limits).
-// - 1:1 metrics (Pricing, LocationMetric, InvestmentMetric) via a unique FK.
-// - 1:many for Configurations, Amenities, Images, Videos, Reviews.
-// - Cascade delete from Property/User to their children.
+// Conventions:
+// - UUID primary keys (@db.Uuid).
+// - `slug` (builder+project) is the idempotency key for imports — RERA numbers
+//   in the real sheets are dirty, so they are NOT used as a unique key.
+// - text columns validated by zod at the import/service layer.
+// - cascade delete from Property/User to children.
 
 generator client {
   provider = "prisma-client"
@@ -22,16 +21,19 @@ datasource db {
 
 // ───────────────────────── Builders ─────────────────────────
 model Builder {
-  id                String     @id @default(uuid()) @db.Uuid
-  name              String     @unique
-  rating            Float      @default(0) // 0–5 market reputation
-  yearEstablished   Int // maps to frontend `established`
-  deliveredProjects Int        @default(0)
-  logoColor         String
-  description       String?
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
-  properties        Property[]
+  id                   String     @id @default(uuid()) @db.Uuid
+  name                 String     @unique
+  rating               Float?     // 0–5 (often blank in source sheets)
+  yearEstablished      Int? // parsed from "from 1990"
+  yearsInMarketRaw     String? // original "from 1990" / "from 2024"
+  deliveredProjects    Int? // parsed from "100+"
+  deliveredProjectsRaw String?
+  ongoingProjects      Int?
+  logoColor            String     @default("#0f3460")
+  description          String?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  properties           Property[]
 
   @@index([name])
   @@map("builders")
@@ -39,33 +41,43 @@ model Builder {
 
 // ───────────────────────── Properties ─────────────────────────
 model Property {
-  id             String   @id @default(uuid()) @db.Uuid
-  name           String
-  subtitle       String   @default("")
-  builderId      String   @db.Uuid
-  city           String
-  locality       String
-  kind           String // Apartment | Villa | Plot | Builder Floor
-  possession     String // Ready to Move | Under Construction | New Launch
-  possessionDate String // display label, e.g. "Ready · Dec 2023"
-  reraId         String   @unique
-  areaAcres      Float    @default(0)
-  towers         Int      @default(0)
-  configsLabel   String // e.g. "2 / 3 BHK"
-  gradientFrom   String   @default("#0f3460")
-  gradientTo     String   @default("#16697a")
-  highlights     String[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String    @id @default(uuid()) @db.Uuid
+  slug            String    @unique // builder+project, stable import key
+  name            String
+  subtitle        String    @default("")
+  builderId       String    @db.Uuid
+  projectType     String? // Residential | Commercial
+  category        String? // Luxury | Premium | ...
+  city            String
+  locality        String
+  kind            String // Apartment | Villa | Plot | Builder Floor
+  possession      String // normalised: Ready to Move | Under Construction | New Launch
+  possessionDate  String // display label
+  description     String?
+  reraId          String? // dirty in source; not unique
+  reraRegisteredAt DateTime?
+  reraCompletionAt DateTime?
+  areaAcres       Float     @default(0)
+  towers          Int       @default(0) // count (detail in Tower[])
+  totalUnits      Int?
+  clubSizeSqft    Int?
+  configsLabel    String    @default("") // e.g. "2 / 3 / 4 BHK" (derived)
+  gradientFrom    String    @default("#0f3460")
+  gradientTo      String    @default("#16697a")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   builder        Builder                   @relation(fields: [builderId], references: [id], onDelete: Restrict)
   pricing        Pricing?
   location       LocationMetric?
   investment     InvestmentMetric?
+  analysis       InternalAnalysis?
+  parking        Parking?
   configurations Configuration[]
+  towerUnits     Tower[]
   amenities      Amenity[]
-  images         PropertyImage[]
-  videos         PropertyVideo[]
+  media          PropertyMedia[]
+  attributes     PropertyAttribute[]
   reviews        Review[]
   savedIn        SavedComparisonProperty[]
 
@@ -78,41 +90,79 @@ model Property {
 
 // ───────────────────────── Pricing (1:1) ─────────────────────────
 model Pricing {
-  id                String   @id @default(uuid()) @db.Uuid
-  propertyId        String   @unique @db.Uuid
-  startingPriceLakh Float // INR lakhs (1 Cr = 100 lakhs)
-  pricePerSqFt      Int
-  priceRangeLabel   String
-  minPriceLakh      Float?
-  maxPriceLakh      Float?
-  property          Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(uuid()) @db.Uuid
+  propertyId         String   @unique @db.Uuid
+  startingPriceLakh  Float? // may be derived from pricePerSqFt × min area
+  maxPriceLakh       Float?
+  pricePerSqFt       Int?
+  priceRangeLabel    String   @default("")
+  bookingAmount      Float?
+  maintenancePerSqft Float?
+  startingDerived    Boolean  @default(false) // true if computed, not given
+  property           Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([startingPriceLakh])
   @@map("pricing")
 }
 
-// ───────────────────── Configurations / floor plans (1:many) ─────────────────────
+// ───────────── Configurations / unit types (1:many) ─────────────
 model Configuration {
-  id             String   @id @default(uuid()) @db.Uuid
-  propertyId     String   @db.Uuid
-  label          String // e.g. "2 BHK"
-  areaSqFt       Int
-  priceLabel     String
-  floorPlanImage String
-  sortOrder      Int      @default(0)
-  property       Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid()) @db.Uuid
+  propertyId      String   @db.Uuid
+  label           String // unit type, e.g. "4BHK+S"
+  areaSqFt        Int      @default(0) // headline (saleable) area
+  saleableAreaSqft Int?
+  carpetAreaSqft  Float?
+  balconyAreaSqft Float?
+  builtUpAreaSqft Float?
+  priceLabel      String   @default("")
+  floorPlanImage  String   @default("")
+  sortOrder       Int      @default(0)
+  property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([propertyId])
   @@map("configurations")
 }
 
-// ───────────────────────── Amenities (1:many) ─────────────────────────
+// ───────────────────────── Towers (1:many) ─────────────────────────
+model Tower {
+  id            String   @id @default(uuid()) @db.Uuid
+  propertyId    String   @db.Uuid
+  name          String // "Tower A"
+  ceilingHeight String?
+  floorPlan     String? // "B+G+17"
+  lifts         Int?
+  unitsPerFloor Int?
+  totalUnits    Int?
+  sortOrder     Int      @default(0)
+  property      Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("towers")
+}
+
+// ───────────────────────── Parking (1:1) ─────────────────────────
+model Parking {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @unique @db.Uuid
+  basement   Int?
+  ev         Int?
+  mechanical Int?
+  open       Int?
+  total      Int?
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("parking")
+}
+
+// ───────────────────────── Amenities (1:many, dynamic catalog) ─────────────────────────
 model Amenity {
   id         String   @id @default(uuid()) @db.Uuid
   propertyId String   @db.Uuid
-  key        String // AmenityKey: pool | gym | clubhouse | ...
-  label      String
+  key        String // slug, e.g. "swimming_pool"
+  label      String // "Swimming Pool"
   available  Boolean  @default(false)
+  note       String? // free text, e.g. "Olympic Size, 3 type"
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@unique([propertyId, key])
@@ -124,11 +174,14 @@ model Amenity {
 model LocationMetric {
   id                String   @id @default(uuid()) @db.Uuid
   propertyId        String   @unique @db.Uuid
-  metroKm           Float
-  hospitalKm        Float
-  schoolKm          Float
-  airportKm         Float
-  connectivityIndex Int // 0–100
+  metroMin          Int? // travel time (minutes) — source gives time, not km
+  schoolMin         Int?
+  hospitalMin       Int?
+  expresswayMin     Int?
+  expresswayNote    String?
+  mapsUrl           String?
+  sector            String?
+  connectivityIndex Int      @default(0) // 0–100 (derived from times)
   property          Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@map("location_metrics")
@@ -136,41 +189,61 @@ model LocationMetric {
 
 // ───────────────────────── Investment metrics (1:1) ─────────────────────────
 model InvestmentMetric {
-  id              String   @id @default(uuid()) @db.Uuid
-  propertyId      String   @unique @db.Uuid
-  appreciationPct Float
-  rentalYieldPct  Float
-  demandIndex     Int // 0–100
-  property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  id                     String   @id @default(uuid()) @db.Uuid
+  propertyId             String   @unique @db.Uuid
+  appreciationPct        Float?
+  rentalYieldPct         Float?
+  demandIndex            Int      @default(0)
+  idealFor               String? // Investment | Self Use | Both
+  investorFriendly       Boolean?
+  upcomingInfrastructure String?
+  property               Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@map("investment_metrics")
 }
 
-// ───────────────────────── Property images (1:many) ─────────────────────────
-model PropertyImage {
-  id         String   @id @default(uuid()) @db.Uuid
-  propertyId String   @db.Uuid
-  url        String
-  alt        String?
-  isPrimary  Boolean  @default(false)
-  sortOrder  Int      @default(0)
-  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+// ───────────────── Internal analysis / scoring (1:1) — feeds AI ─────────────────
+model InternalAnalysis {
+  id                   String   @id @default(uuid()) @db.Uuid
+  propertyId           String   @unique @db.Uuid
+  locationScore        Int?
+  amenitiesScore       Int?
+  builderScore         Int?
+  investmentScore      Int?
+  overallRecommendation String?
+  property             Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
-  @@index([propertyId])
-  @@map("property_images")
+  @@map("internal_analysis")
 }
 
-// ───────────────────────── Property videos (1:many) ─────────────────────────
-model PropertyVideo {
+// ───────────────────────── Media (1:many, typed) ─────────────────────────
+model PropertyMedia {
   id         String   @id @default(uuid()) @db.Uuid
   propertyId String   @db.Uuid
+  type       String // logo | cover | gallery | brochure | video | images_folder
   url        String
-  title      String?
+  alt        String?
   sortOrder  Int      @default(0)
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([propertyId])
-  @@map("property_videos")
+  @@map("property_media")
+}
+
+// ─────────── Open-ended attributes (highlights + any unmapped field) ───────────
+// Ensures NO source field is ever silently dropped; future sheets with new
+// fields land here automatically until/unless promoted to a real column.
+model PropertyAttribute {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @db.Uuid
+  category   String   @default("misc") // highlight | misc | ...
+  key        String
+  value      String
+  sortOrder  Int      @default(0)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_attributes")
 }
 
 // ───────────────────────── Reviews (1:many) ─────────────────────────
@@ -179,7 +252,7 @@ model Review {
   propertyId String   @db.Uuid
   userId     String?  @db.Uuid
   authorName String
-  rating     Int // 1–5
+  rating     Int
   comment    String
   createdAt  DateTime @default(now())
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
@@ -195,8 +268,8 @@ model User {
   id               String            @id @default(uuid()) @db.Uuid
   name             String
   email            String            @unique
-  passwordHash     String? // null for OAuth (e.g. Google) accounts
-  provider         String            @default("email") // email | google
+  passwordHash     String?
+  provider         String            @default("email")
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   reviews          Review[]
@@ -218,7 +291,6 @@ model SavedComparison {
   @@map("saved_comparisons")
 }
 
-// Join table: which properties belong to a saved comparison (many-to-many).
 model SavedComparisonProperty {
   id                String          @id @default(uuid()) @db.Uuid
   savedComparisonId String          @db.Uuid
@@ -229,4 +301,20 @@ model SavedComparisonProperty {
   @@unique([savedComparisonId, propertyId])
   @@index([propertyId])
   @@map("saved_comparison_properties")
+}
+
+// ───────────────── Import audit (validation reports + idempotency log) ─────────────────
+model ImportRun {
+  id           String   @id @default(uuid()) @db.Uuid
+  sourceFile   String
+  status       String // success | partial | failed
+  createdCount Int      @default(0)
+  updatedCount Int      @default(0)
+  skippedCount Int      @default(0)
+  warningCount Int      @default(0)
+  report       Json
+  createdAt    DateTime @default(now())
+
+  @@index([sourceFile])
+  @@map("import_runs")
 }

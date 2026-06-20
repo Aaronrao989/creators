@@ -660,11 +660,12 @@ function sqftRange(p: Property): string {
 }
 
 function connectivity(p: Property) {
+  // Source sheets provide travel TIME in minutes (the 4th metric is Expressway).
   return [
-    { label: "Metro Station", value: `${p.location.metroKm} km` },
-    { label: "Hospital", value: `${p.location.hospitalKm} km` },
-    { label: "School", value: `${p.location.schoolKm} km` },
-    { label: "Airport", value: `${p.location.airportKm} km` },
+    { label: "Metro Station", value: `${p.location.metroKm} min` },
+    { label: "Hospital", value: `${p.location.hospitalKm} min` },
+    { label: "School", value: `${p.location.schoolKm} min` },
+    { label: "Expressway", value: `${p.location.airportKm} min` },
     { label: "Connectivity Score", value: `${p.location.connectivityIndex}/100` },
   ];
 }

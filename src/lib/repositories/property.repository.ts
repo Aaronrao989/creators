@@ -12,8 +12,8 @@ import type {
 
 /**
  * Property repository — the ONLY place that talks to Prisma for properties.
- * It returns the frontend domain `Property` shape (mapping normalised rows →
- * the denormalised type the UI already consumes), so nothing in the UI changes.
+ * Maps the normalised v2 schema back to the frontend `Property` shape so the UI
+ * contract is unchanged.
  */
 
 const ALL_AMENITY_KEYS: AmenityKey[] = [
@@ -27,6 +27,25 @@ const ALL_AMENITY_KEYS: AmenityKey[] = [
   "powerBackup",
 ];
 
+/** DB amenity slug → frontend fixed AmenityKey (extras are stored but not in the Record). */
+const AMENITY_SLUG_TO_KEY: Record<string, AmenityKey> = {
+  swimming_pool: "pool",
+  pool: "pool",
+  gym: "gym",
+  clubhouse: "clubhouse",
+  cctv_security: "security",
+  security: "security",
+  sports_court: "sports",
+  sports: "sports",
+  kids_play_area: "kidsArea",
+  power_backup: "powerBackup",
+  coworking: "coworking",
+  coworking_space: "coworking",
+};
+
+const DEFAULT_COVER = "/properties/render-blue.jpg";
+const DEFAULT_FLOORPLAN = "/floorplans/plan-a.jpg";
+
 const propertyInclude = {
   builder: true,
   pricing: true,
@@ -34,7 +53,8 @@ const propertyInclude = {
   investment: true,
   configurations: { orderBy: { sortOrder: "asc" } },
   amenities: true,
-  images: { orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }] },
+  media: { orderBy: { sortOrder: "asc" } },
+  attributes: { orderBy: { sortOrder: "asc" } },
 } satisfies Prisma.PropertyInclude;
 
 type PropertyRow = Prisma.PropertyGetPayload<{ include: typeof propertyInclude }>;
@@ -46,9 +66,9 @@ export function mapBuilder(b: BuilderRow): Builder {
   return {
     id: b.id,
     name: b.name,
-    rating: b.rating,
-    established: b.yearEstablished,
-    deliveredProjects: b.deliveredProjects,
+    rating: b.rating ?? 0,
+    established: b.yearEstablished ?? 0,
+    deliveredProjects: b.deliveredProjects ?? 0,
     logoColor: b.logoColor,
   };
 }
@@ -58,10 +78,14 @@ function mapProperty(p: PropertyRow): Property {
     ALL_AMENITY_KEYS.map((k) => [k, false]),
   ) as Record<AmenityKey, boolean>;
   for (const a of p.amenities) {
-    if ((ALL_AMENITY_KEYS as string[]).includes(a.key)) {
-      amenities[a.key as AmenityKey] = a.available;
-    }
+    const key = AMENITY_SLUG_TO_KEY[a.key];
+    if (key) amenities[key] = a.available;
   }
+
+  const cover =
+    p.media.find((m) => m.type === "cover")?.url ??
+    p.media.find((m) => m.type === "gallery")?.url ??
+    DEFAULT_COVER;
 
   return {
     id: p.id,
@@ -74,20 +98,21 @@ function mapProperty(p: PropertyRow): Property {
     configs: p.configsLabel,
     possession: p.possession as Possession,
     possessionDate: p.possessionDate,
-    reraId: p.reraId,
+    reraId: p.reraId ?? "",
     priceLakh: p.pricing?.startingPriceLakh ?? 0,
     pricePerSqFt: p.pricing?.pricePerSqFt ?? 0,
     priceRangeLabel: p.pricing?.priceRangeLabel ?? "",
     areaAcres: p.areaAcres,
     towers: p.towers,
-    image: p.images[0]?.url ?? "",
+    image: cover,
     gradient: [p.gradientFrom, p.gradientTo],
     amenities,
     location: {
-      metroKm: p.location?.metroKm ?? 0,
-      hospitalKm: p.location?.hospitalKm ?? 0,
-      schoolKm: p.location?.schoolKm ?? 0,
-      airportKm: p.location?.airportKm ?? 0,
+      // Source provides travel TIME (minutes); we surface it in the existing slots.
+      metroKm: p.location?.metroMin ?? 0,
+      hospitalKm: p.location?.hospitalMin ?? 0,
+      schoolKm: p.location?.schoolMin ?? 0,
+      airportKm: p.location?.expresswayMin ?? 0, // expressway in the 4th slot
       connectivityIndex: p.location?.connectivityIndex ?? 0,
     },
     investment: {
@@ -99,9 +124,11 @@ function mapProperty(p: PropertyRow): Property {
       config: c.label,
       areaSqFt: c.areaSqFt,
       priceLabel: c.priceLabel,
-      image: c.floorPlanImage,
+      image: c.floorPlanImage || DEFAULT_FLOORPLAN,
     })),
-    highlights: p.highlights,
+    highlights: p.attributes
+      .filter((a) => a.category === "highlight")
+      .map((a) => a.value),
   };
 }
 
@@ -158,7 +185,6 @@ export const propertyRepository = {
       include: propertyInclude,
     });
     const map = new Map(rows.map((r) => [r.id, mapProperty(r)]));
-    // preserve the requested order
     return ids.map((id) => map.get(id)).filter((p): p is Property => Boolean(p));
   },
 
