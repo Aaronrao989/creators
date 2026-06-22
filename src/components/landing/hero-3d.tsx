@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   motion,
@@ -13,12 +12,15 @@ import {
 import {
   ArrowRight,
   Building2,
-  Scale,
   Sparkles,
   Star,
   TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CoverImage } from "@/components/ui/cover-image";
+import { compareProperties } from "@/lib/scoring";
+import { formatPriceLakh } from "@/lib/utils";
+import type { Property } from "@/lib/types";
 
 /**
  * Interactive 3D hero. The whole stage reacts to the cursor: a perspective
@@ -26,7 +28,22 @@ import { Button } from "@/components/ui/button";
  * different amounts). Everything is visible at rest — the motion is enhancement,
  * not a gate — so it never depends on an animation finishing to show content.
  */
-export function Hero3D() {
+export function Hero3D({ properties = [] }: { properties?: Property[] }) {
+  // Build the 3D deck from real database listings, scored by the same engine the
+  // compare page uses — no hardcoded names, prices or images.
+  const { winner, deck } = React.useMemo(() => {
+    const scores =
+      properties.length >= 2 ? compareProperties(properties).scores : {};
+    const scoreOf = (p: Property) => scores[p.id]?.overall ?? 0;
+    const sorted = [...properties].sort((a, b) => scoreOf(b) - scoreOf(a));
+    return {
+      winner: sorted[0]
+        ? { p: sorted[0], score: scoreOf(sorted[0]) }
+        : null,
+      deck: sorted.slice(1, 3).map((p) => ({ p, score: scoreOf(p) })),
+    };
+  }, [properties]);
+
   const stage = React.useRef<HTMLDivElement>(null);
   const mx = useMotionValue(0); // -0.5 .. 0.5
   const my = useMotionValue(0);
@@ -97,7 +114,7 @@ export function Hero3D() {
 
           <dl className="mt-10 flex flex-wrap gap-x-9 gap-y-4">
             {[
-              { k: "1,200+", v: "Verified projects" },
+              { k: String(properties.length), v: "Projects listed" },
               { k: "5", v: "Scoring factors" },
               { k: "< 2 min", v: "To a decision" },
             ].map((s) => (
@@ -124,39 +141,39 @@ export function Hero3D() {
               <GlowPanel />
             </Layer>
 
-            <Layer sx={sx} sy={sy} depth={20} z={10} className="left-[2%] top-[26%]">
-              <DeckCard
-                image="/properties/villa-luxury.png"
-                name="Sobha Intl. City"
-                meta="Gurugram · Villa"
-                price="₹6.5 Cr"
-                score={66}
-                rotate={-7}
-                float="animate-float-slow"
-              />
-            </Layer>
+            {deck[0] && (
+              <Layer sx={sx} sy={sy} depth={20} z={10} className="left-[2%] top-[26%]">
+                <DeckCard
+                  property={deck[0].p}
+                  score={deck[0].score}
+                  rotate={-7}
+                  float="animate-float-slow"
+                />
+              </Layer>
+            )}
 
-            <Layer sx={sx} sy={sy} depth={70} z={70} className="right-[2%] top-[14%]">
-              <DeckCard
-                image="/properties/towers-courtyard.jpg"
-                name="ATS Royale"
-                meta="Noida Ext · Ready"
-                price="₹65 L"
-                score={62}
-                rotate={6}
-                float="animate-float"
-              />
-            </Layer>
+            {deck[1] && (
+              <Layer sx={sx} sy={sy} depth={70} z={70} className="right-[2%] top-[14%]">
+                <DeckCard
+                  property={deck[1].p}
+                  score={deck[1].score}
+                  rotate={6}
+                  float="animate-float"
+                />
+              </Layer>
+            )}
 
-            <Layer
-              sx={sx}
-              sy={sy}
-              depth={130}
-              z={150}
-              className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-            >
-              <WinnerCard />
-            </Layer>
+            {winner && (
+              <Layer
+                sx={sx}
+                sy={sy}
+                depth={130}
+                z={150}
+                className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+              >
+                <WinnerCard property={winner.p} score={winner.score} />
+              </Layer>
+            )}
 
             <Layer sx={sx} sy={sy} depth={180} z={210} className="right-[6%] top-[2%]">
               <FloatingChip
@@ -166,9 +183,11 @@ export function Hero3D() {
               />
             </Layer>
 
-            <Layer sx={sx} sy={sy} depth={200} z={230} className="left-[4%] bottom-[6%]">
-              <ScoreOrb value={92} />
-            </Layer>
+            {winner && (
+              <Layer sx={sx} sy={sy} depth={200} z={230} className="left-[4%] bottom-[6%]">
+                <ScoreOrb value={winner.score} />
+              </Layer>
+            )}
           </motion.div>
         </div>
       </div>
@@ -213,18 +232,12 @@ function Layer({
 }
 
 function DeckCard({
-  image,
-  name,
-  meta,
-  price,
+  property,
   score,
   rotate,
   float,
 }: {
-  image: string;
-  name: string;
-  meta: string;
-  price: string;
+  property: Property;
   score: number;
   rotate: number;
   float: string;
@@ -233,7 +246,12 @@ function DeckCard({
     <div className={float} style={{ transform: `rotate(${rotate}deg)` }}>
       <div className="glass w-60 overflow-hidden rounded-2xl shadow-lift">
         <div className="relative h-28 w-full">
-          <Image src={image} alt={name} fill className="object-cover" sizes="240px" />
+          <CoverImage
+            src={property.image}
+            alt={property.name}
+            gradient={property.gradient}
+            sizes="240px"
+          />
           <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur">
             <Star className="h-2.5 w-2.5 fill-accent text-accent" />
             {score}
@@ -243,11 +261,15 @@ function DeckCard({
           <div className="min-w-0">
             <div className="flex items-center gap-1 truncate text-sm font-bold">
               <Building2 className="h-3.5 w-3.5 shrink-0 text-accent" />
-              <span className="truncate">{name}</span>
+              <span className="truncate">{property.name}</span>
             </div>
-            <div className="truncate text-[11px] text-muted-foreground">{meta}</div>
+            <div className="truncate text-[11px] text-muted-foreground">
+              {property.locality} · {property.city}
+            </div>
           </div>
-          <div className="shrink-0 text-sm font-extrabold text-accent">{price}</div>
+          <div className="shrink-0 text-sm font-extrabold text-accent">
+            {formatPriceLakh(property.priceLakh)}
+          </div>
         </div>
       </div>
     </div>
@@ -255,16 +277,16 @@ function DeckCard({
 }
 
 /* The central "winner" card — slightly larger, glowing accent ring. */
-function WinnerCard() {
+function WinnerCard({ property, score }: { property: Property; score: number }) {
   return (
     <div className="animate-float-slow">
       <div className="w-64 overflow-hidden rounded-2xl border-2 border-accent bg-card shadow-glow">
         <div className="relative h-32 w-full">
-          <Image
-            src="/properties/render-blue.jpg"
-            alt="Godrej Woods"
-            fill
-            className="object-cover"
+          <CoverImage
+            src={property.image}
+            alt={property.name}
+            gradient={property.gradient}
+            label={property.name}
             sizes="256px"
           />
           <span className="absolute left-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
@@ -273,16 +295,21 @@ function WinnerCard() {
         </div>
         <div className="p-3.5">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-extrabold text-primary dark:text-foreground">
-              Godrej Woods
+            <div className="truncate text-sm font-extrabold text-primary dark:text-foreground">
+              {property.name}
             </div>
-            <div className="text-sm font-extrabold text-accent">₹3.2 Cr</div>
+            <div className="shrink-0 text-sm font-extrabold text-accent">
+              {formatPriceLakh(property.priceLakh)}
+            </div>
           </div>
           <div className="mt-2 flex items-center gap-2">
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-              <div className="h-full w-[92%] rounded-full bg-gradient-to-r from-accent to-[hsl(280_84%_68%)]" />
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-accent to-[hsl(280_84%_68%)]"
+                style={{ width: `${score}%` }}
+              />
             </div>
-            <span className="text-xs font-bold text-accent">92</span>
+            <span className="text-xs font-bold text-accent">{score}</span>
           </div>
         </div>
       </div>

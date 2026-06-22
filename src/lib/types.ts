@@ -2,9 +2,9 @@
  * Domain model for the Creators Home comparison platform.
  *
  * These interfaces are the single contract between the UI and the data layer.
- * Today they are fed by the local dummy dataset (`/data/properties.ts`); later a
- * WordPress / custom REST adapter can satisfy the exact same shapes without any
- * UI changes (see `/lib/data-source.ts`).
+ * They are fed from PostgreSQL via the repository/service layers and mapped back
+ * to these shapes in `property.repository.ts`, so the UI contract never changes
+ * regardless of the backing store (see `/lib/data-source.ts`).
  */
 
 export type Possession = "Ready to Move" | "Under Construction" | "New Launch";

@@ -9,7 +9,7 @@ export default async function HomePage() {
   const properties = await getDataSource().list();
   return (
     <>
-      <Hero3D />
+      <Hero3D properties={properties} />
       <PropertyExplorer
         initial={properties}
         title="Featured properties by location"

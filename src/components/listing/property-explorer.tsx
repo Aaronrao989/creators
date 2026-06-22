@@ -25,6 +25,7 @@ import { useAuth } from "@/store/auth";
 import { useMounted } from "@/lib/use-mounted";
 import { CompareBar } from "@/components/selection/compare-bar";
 import { Button } from "@/components/ui/button";
+import { CoverImage } from "@/components/ui/cover-image";
 import { cn, formatPriceLakh } from "@/lib/utils";
 
 const BHK_OPTS = [1, 2, 3, 4];
@@ -320,13 +321,13 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
             <div className="grid items-center gap-5 lg:grid-cols-[auto_1fr]">
               <div className="relative flex items-center">
                 <span className="relative h-24 w-36 overflow-hidden rounded-xl">
-                  <Image src="/properties/villa-luxury.png" alt="" fill className="object-cover" sizes="160px" />
+                  <CoverImage src={initial[0]?.image} alt={initial[0]?.name ?? ""} gradient={initial[0]?.gradient} sizes="160px" />
                 </span>
                 <span className="z-10 -mx-3 flex h-10 w-10 items-center justify-center rounded-full border-4 border-card bg-primary text-[11px] font-extrabold text-primary-foreground">
                   V/S
                 </span>
                 <span className="relative h-24 w-36 overflow-hidden rounded-xl">
-                  <Image src="/properties/villa-aerial.jpg" alt="" fill className="object-cover" sizes="160px" />
+                  <CoverImage src={initial[1]?.image} alt={initial[1]?.name ?? ""} gradient={initial[1]?.gradient} sizes="160px" />
                 </span>
               </div>
               <div className="text-center lg:text-left">
@@ -450,7 +451,8 @@ function standaloneScore(p: Property): number {
   );
 }
 
-function ListingCard({ property: p }: { property: Property }) {
+const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
+  function ListingCard({ property: p }, ref) {
   const router = useRouter();
   const pathname = usePathname();
   const mounted = useMounted();
@@ -474,12 +476,13 @@ function ListingCard({ property: p }: { property: Property }) {
 
   return (
     <motion.div
+      ref={ref}
       layout
       whileHover={{ y: -4 }}
       className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-glass"
     >
       <div className="relative h-44 w-full">
-        <Image src={p.image} alt={p.name} fill className="object-cover" sizes="(max-width:768px) 100vw, 360px" />
+        <CoverImage src={p.image} alt={p.name} gradient={p.gradient} label={p.name} sizes="(max-width:768px) 100vw, 360px" />
         <button
           onClick={handleShortlist}
           aria-label="Shortlist"
@@ -540,7 +543,8 @@ function ListingCard({ property: p }: { property: Property }) {
       </div>
     </motion.div>
   );
-}
+});
+ListingCard.displayName = "ListingCard";
 
 function sqftRange(p: Property): string {
   const a = p.floorPlans.map((f) => f.areaSqFt);

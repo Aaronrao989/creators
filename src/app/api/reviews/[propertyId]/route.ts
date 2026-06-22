@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { reviewService } from "@/lib/services/review.service";
 import { createReviewSchema } from "@/lib/validation/schemas";
-import { handleError, json } from "@/lib/api/http";
+import { handleError, json, parseJsonBody } from "@/lib/api/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ export async function POST(
   { params }: { params: { propertyId: string } },
 ) {
   try {
-    const body = createReviewSchema.parse(await req.json());
+    const body = createReviewSchema.parse(await parseJsonBody(req));
     const review = await reviewService.create(params.propertyId, body);
     return json(review, 201);
   } catch (err) {

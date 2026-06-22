@@ -27,24 +27,22 @@ const ALL_AMENITY_KEYS: AmenityKey[] = [
   "powerBackup",
 ];
 
-/** DB amenity slug → frontend fixed AmenityKey (extras are stored but not in the Record). */
+/** DB amenity slug → frontend fixed AmenityKey. Slugs are produced by `norm()`
+ *  (lowercase, alphanumeric only — no underscores), so keys must match that. */
 const AMENITY_SLUG_TO_KEY: Record<string, AmenityKey> = {
-  swimming_pool: "pool",
+  swimmingpool: "pool",
   pool: "pool",
   gym: "gym",
   clubhouse: "clubhouse",
-  cctv_security: "security",
+  cctvsecurity: "security",
   security: "security",
-  sports_court: "sports",
+  sportscourt: "sports",
   sports: "sports",
-  kids_play_area: "kidsArea",
-  power_backup: "powerBackup",
+  kidsplayarea: "kidsArea",
+  powerbackup: "powerBackup",
   coworking: "coworking",
-  coworking_space: "coworking",
+  coworkingspace: "coworking",
 };
-
-const DEFAULT_COVER = "/properties/render-blue.jpg";
-const DEFAULT_FLOORPLAN = "/floorplans/plan-a.jpg";
 
 const propertyInclude = {
   builder: true,
@@ -82,10 +80,12 @@ function mapProperty(p: PropertyRow): Property {
     if (key) amenities[key] = a.available;
   }
 
+  // Real media only. When the client sheet has no image we return "" and the UI
+  // renders a branded gradient placeholder rather than a misleading stock photo.
   const cover =
     p.media.find((m) => m.type === "cover")?.url ??
     p.media.find((m) => m.type === "gallery")?.url ??
-    DEFAULT_COVER;
+    "";
 
   return {
     id: p.id,
@@ -124,7 +124,7 @@ function mapProperty(p: PropertyRow): Property {
       config: c.label,
       areaSqFt: c.areaSqFt,
       priceLabel: c.priceLabel,
-      image: c.floorPlanImage || DEFAULT_FLOORPLAN,
+      image: c.floorPlanImage || "",
     })),
     highlights: p.attributes
       .filter((a) => a.category === "highlight")

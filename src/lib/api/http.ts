@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { AppError } from "@/lib/errors";
+import { AppError, BadRequestError } from "@/lib/errors";
 
 /** Uniform success envelope. */
 export function json<T>(data: T, status = 200) {
   return NextResponse.json({ data }, { status });
+}
+
+/** Parse a JSON request body, surfacing a 400 (not a 500) on malformed input. */
+export async function parseJsonBody(req: NextRequest): Promise<unknown> {
+  try {
+    return await req.json();
+  } catch {
+    throw new BadRequestError("Request body must be valid JSON");
+  }
 }
 
 /** Translate thrown errors into safe JSON responses with the right status. */

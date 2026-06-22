@@ -5,7 +5,7 @@ import {
   deleteSavedComparisonSchema,
 } from "@/lib/validation/schemas";
 import { UnauthorizedError } from "@/lib/errors";
-import { handleError, json } from "@/lib/api/http";
+import { handleError, json, parseJsonBody } from "@/lib/api/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { userId, propertyIds, name } = createSavedComparisonSchema.parse(
-      await req.json(),
+      await parseJsonBody(req),
     );
     const saved = await savedComparisonService.create(userId, propertyIds, name);
     return json(saved, 201);
@@ -37,7 +37,9 @@ export async function POST(req: NextRequest) {
 /** DELETE /api/saved-comparisons — { id, userId } (owner-scoped). */
 export async function DELETE(req: NextRequest) {
   try {
-    const { id, userId } = deleteSavedComparisonSchema.parse(await req.json());
+    const { id, userId } = deleteSavedComparisonSchema.parse(
+      await parseJsonBody(req),
+    );
     await savedComparisonService.delete(id, userId);
     return json({ id, deleted: true });
   } catch (err) {

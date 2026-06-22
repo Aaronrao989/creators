@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GitCompareArrows, Heart, MapPin, Trash2 } from "lucide-react";
@@ -10,6 +9,7 @@ import { useComparison } from "@/store/comparison";
 import { useMounted } from "@/lib/use-mounted";
 import { api } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
+import { CoverImage } from "@/components/ui/cover-image";
 import { cn, formatPriceLakh } from "@/lib/utils";
 import type { Property } from "@/lib/types";
 
@@ -113,7 +113,7 @@ export default function ShortlistPage() {
               className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-glass"
             >
               <div className="relative h-44 w-full">
-                <Image src={p.image} alt={p.name} fill className="object-cover" sizes="360px" />
+                <CoverImage src={p.image} alt={p.name} gradient={p.gradient} label={p.name} sizes="360px" />
                 <button
                   onClick={() => toggleShortlist(p.id)}
                   aria-label="Remove from saved"
