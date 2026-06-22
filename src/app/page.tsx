@@ -9,7 +9,9 @@ export default async function HomePage() {
   const properties = await getDataSource().list();
   return (
     <>
-      <Hero3D properties={properties} />
+      {/* Hero is a fixed marketing illustration — intentionally NOT fed live
+          property data, so it never changes when the database grows. */}
+      <Hero3D />
       <PropertyExplorer
         initial={properties}
         title="Featured properties by location"
