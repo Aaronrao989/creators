@@ -2,7 +2,7 @@
   "name": "creators-home-compare",
   "version": "0.1.0",
   "private": true,
-  "description": "Creators Home \u2014 premium property comparison platform (frontend + mock data layer).",
+  "description": "Creators Home — premium property comparison platform (frontend + mock data layer).",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -15,7 +15,10 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
-    "db:import": "tsx src/lib/import/run-import.ts"
+    "db:import": "tsx src/lib/import/run-import.ts",
+    "db:up": "bash scripts/pg.sh up",
+    "db:down": "bash scripts/pg.sh down",
+    "db:status": "bash scripts/pg.sh status"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -42,6 +45,9 @@
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",
     "dotenv": "^17.4.2",
+    "embedded-postgres": "^18.4.0-beta.17",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.5",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.7",
     "tsx": "^4.22.4",
