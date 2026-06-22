@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { AuthNav } from "@/components/auth/auth-nav";
 import { useComparison } from "@/store/comparison";
+import { useMounted } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -20,8 +21,12 @@ const NAV = [
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const mounted = useMounted();
   const [scrolled, setScrolled] = React.useState(false);
+  // Persisted (localStorage) store — only trust it after mount so the first
+  // client render matches the server HTML and hydration doesn't mismatch.
   const count = useComparison((s) => s.selected.length);
+  const badge = mounted ? count : 0;
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -71,9 +76,9 @@ export function SiteHeader() {
             <Button variant="ghost" size="sm" className="gap-1.5">
               <GitCompareArrows className="h-4 w-4" />
               Compare
-              {count > 0 && (
+              {badge > 0 && (
                 <span className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-bold text-accent-foreground">
-                  {count}
+                  {badge}
                 </span>
               )}
             </Button>
