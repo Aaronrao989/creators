@@ -2,9 +2,16 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    // Local dummy assets only for now. When the WordPress data source is wired in,
-    // add the CMS host here (e.g. { protocol: 'https', hostname: 'creatorshome.in' }).
+    // Local assets for now. When media moves to a CDN/CMS, add the host here.
     remotePatterns: [],
+  },
+  // Keep the Prisma client + pg driver out of the bundler (server-only natives).
+  experimental: {
+    serverComponentsExternalPackages: [
+      "@prisma/client",
+      "@prisma/adapter-pg",
+      "pg",
+    ],
   },
 };
 

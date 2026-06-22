@@ -8,6 +8,9 @@ export const metadata: Metadata = {
     "Browse and shortlist NCR residential properties to compare side-by-side.",
 };
 
+// DB-backed: render at request time, not build time.
+export const dynamic = "force-dynamic";
+
 export default async function PropertiesPage() {
   const properties = await getDataSource().list();
   return (

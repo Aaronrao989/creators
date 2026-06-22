@@ -11,10 +11,10 @@ export function LocationMap({ property }: { property: Property }) {
   // Map each distance to a radius from centre (closer = nearer the pin).
   const r = (km: number, max: number) => 16 + Math.min(km / max, 1) * 40;
   const dots = [
-    { label: "M", title: "Metro", d: r(metroKm, 6), a: -35, color: "hsl(var(--accent))" },
-    { label: "H", title: "Hospital", d: r(hospitalKm, 6), a: 55, color: "#ef4444" },
-    { label: "S", title: "School", d: r(schoolKm, 4), a: 150, color: "#2563eb" },
-    { label: "A", title: "Airport", d: r(airportKm, 45), a: 230, color: "#16a34a" },
+    { label: "M", title: "Metro", d: r(metroKm, 12), a: -35, color: "hsl(var(--accent))" },
+    { label: "H", title: "Hospital", d: r(hospitalKm, 12), a: 55, color: "#ef4444" },
+    { label: "S", title: "School", d: r(schoolKm, 12), a: 150, color: "#2563eb" },
+    { label: "E", title: "Expressway", d: r(airportKm, 15), a: 230, color: "#16a34a" },
   ];
   const cx = 120;
   const cy = 70;

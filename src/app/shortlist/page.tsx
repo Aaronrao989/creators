@@ -1,16 +1,17 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GitCompareArrows, Heart, MapPin, Trash2 } from "lucide-react";
-import { propertyById } from "@/data/properties";
 import { useAuth, selectShortlistIds } from "@/store/auth";
 import { useComparison } from "@/store/comparison";
 import { useMounted } from "@/lib/use-mounted";
+import { api } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
+import { CoverImage } from "@/components/ui/cover-image";
 import { cn, formatPriceLakh } from "@/lib/utils";
+import type { Property } from "@/lib/types";
 
 export default function ShortlistPage() {
   const mounted = useMounted();
@@ -19,6 +20,28 @@ export default function ShortlistPage() {
   const savedIds = useAuth(selectShortlistIds);
   const inCompare = useComparison((s) => s.selected);
   const toggleCompare = useComparison((s) => s.toggle);
+
+  const [saved, setSaved] = React.useState<Property[]>([]);
+  const savedKey = savedIds.join(",");
+  React.useEffect(() => {
+    if (!user || savedIds.length === 0) {
+      setSaved([]);
+      return;
+    }
+    let cancelled = false;
+    api
+      .propertiesByIds(savedIds)
+      .then((props) => {
+        if (!cancelled) setSaved(props);
+      })
+      .catch(() => {
+        if (!cancelled) setSaved([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, savedKey]);
 
   if (!mounted) {
     return (
@@ -53,10 +76,6 @@ export default function ShortlistPage() {
       </div>
     );
   }
-
-  const saved = savedIds
-    .map((id) => propertyById(id))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
   return (
     <div className="container py-10 md:py-14">
@@ -94,7 +113,7 @@ export default function ShortlistPage() {
               className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-glass"
             >
               <div className="relative h-44 w-full">
-                <Image src={p.image} alt={p.name} fill className="object-cover" sizes="360px" />
+                <CoverImage src={p.image} alt={p.name} gradient={p.gradient} label={p.name} sizes="360px" />
                 <button
                   onClick={() => toggleShortlist(p.id)}
                   aria-label="Remove from saved"

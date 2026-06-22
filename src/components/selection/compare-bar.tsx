@@ -1,16 +1,15 @@
 "use client";
 
+import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, X } from "lucide-react";
-import { properties } from "@/data/properties";
-import {
-  MAX_COMPARE,
-  MIN_COMPARE,
-  useComparison,
-} from "@/store/comparison";
+import { MAX_COMPARE, MIN_COMPARE, useComparison } from "@/store/comparison";
+import { api } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
+
+type Chip = { id: string; name: string; image: string };
 
 export function CompareBar() {
   const router = useRouter();
@@ -18,9 +17,34 @@ export function CompareBar() {
   const remove = useComparison((s) => s.remove);
   const clear = useComparison((s) => s.clear);
 
-  const items = selected
-    .map((id) => properties.find((p) => p.id === id))
-    .filter(Boolean) as typeof properties;
+  // Fetch (and cache) just name + image for the chips; the store holds only ids.
+  const [details, setDetails] = React.useState<Record<string, Chip>>({});
+  const key = selected.join(",");
+  React.useEffect(() => {
+    const missing = selected.filter((id) => !details[id]);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    api
+      .propertiesByIds(missing)
+      .then((props) => {
+        if (cancelled) return;
+        setDetails((d) => {
+          const next = { ...d };
+          for (const p of props)
+            next[p.id] = { id: p.id, name: p.name, image: p.image };
+          return next;
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  const items: Chip[] = selected.map(
+    (id) => details[id] ?? { id, name: "Loading…", image: "" },
+  );
 
   const canCompare = selected.length >= MIN_COMPARE;
   const need = MIN_COMPARE - selected.length;
@@ -46,8 +70,10 @@ export function CompareBar() {
                     key={p.id}
                     className="flex shrink-0 items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-2.5"
                   >
-                    <span className="relative h-7 w-7 overflow-hidden rounded-full">
-                      <Image src={p.image} alt="" fill className="object-cover" sizes="28px" />
+                    <span className="relative h-7 w-7 overflow-hidden rounded-full bg-white/20">
+                      {p.image && (
+                        <Image src={p.image} alt="" fill className="object-cover" sizes="28px" />
+                      )}
                     </span>
                     <span className="max-w-[120px] truncate text-xs font-semibold">
                       {p.name}

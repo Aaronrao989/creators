@@ -25,13 +25,13 @@ import {
   X,
 } from "lucide-react";
 import type { AmenityKey, Property } from "@/lib/types";
-import { properties as ALL_PROPERTIES } from "@/data/properties";
 import { compareProperties, scoreTier } from "@/lib/scoring";
 import { useComparison } from "@/store/comparison";
 import { useAuth, selectShortlistIds } from "@/store/auth";
 import { useMounted } from "@/lib/use-mounted";
 import { LocationMap } from "@/components/comparison/location-map";
 import { Button } from "@/components/ui/button";
+import { CoverImage } from "@/components/ui/cover-image";
 import { cn, formatPriceLakh } from "@/lib/utils";
 
 const NAV = [
@@ -56,7 +56,13 @@ const AMENITIES: { key: AmenityKey; label: string }[] = [
   { key: "security", label: "24/7 Security" },
 ];
 
-export function ComparisonView({ properties }: { properties: Property[] }) {
+export function ComparisonView({
+  properties,
+  similar = [],
+}: {
+  properties: Property[];
+  similar?: Property[];
+}) {
   const n = properties.length;
   const result = React.useMemo(() => compareProperties(properties), [properties]);
   const remove = useComparison((s) => s.remove);
@@ -76,10 +82,6 @@ export function ComparisonView({ properties }: { properties: Property[] }) {
   };
 
   const valueCols = { gridTemplateColumns: `repeat(${n}, minmax(0,1fr))` };
-
-  const similar = ALL_PROPERTIES.filter(
-    (p) => !properties.some((sel) => sel.id === p.id),
-  ).slice(0, 3);
 
   return (
     <div className="bg-muted/30">
@@ -129,7 +131,7 @@ export function ComparisonView({ properties }: { properties: Property[] }) {
                   className="flex items-center gap-2.5 rounded-xl border border-border p-2"
                 >
                   <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
-                    <Image src={p.image} alt="" fill className="object-cover" sizes="40px" />
+                    <CoverImage src={p.image} alt={p.name} gradient={p.gradient} sizes="40px" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-xs font-bold text-foreground">{p.name}</div>
@@ -214,7 +216,7 @@ export function ComparisonView({ properties }: { properties: Property[] }) {
                   )}
                 >
                   <div className="relative h-40 w-full">
-                    <Image src={p.image} alt={p.name} fill className="object-cover" sizes="420px" />
+                    <CoverImage src={p.image} alt={p.name} gradient={p.gradient} label={p.name} sizes="420px" />
                     {isTop && (
                       <span className="absolute left-3 top-3 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
                         ★ Top pick
@@ -353,16 +355,16 @@ export function ComparisonView({ properties }: { properties: Property[] }) {
               {properties.map((p) => (
                 <div key={p.id}>
                   <div className="mb-2 flex flex-wrap gap-1.5">
-                    {p.floorPlans.map((fp) => (
-                      <span key={fp.config} className="rounded-md bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">
+                    {p.floorPlans.map((fp, i) => (
+                      <span key={`${fp.config}-${fp.areaSqFt}-${i}`} className="rounded-md bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">
                         {fp.config}
                       </span>
                     ))}
                   </div>
-                  {p.floorPlans.slice(0, 1).map((fp) => (
-                    <div key={fp.config} className="overflow-hidden rounded-xl border border-border bg-background">
+                  {p.floorPlans.slice(0, 1).map((fp, i) => (
+                    <div key={`${fp.config}-${fp.areaSqFt}-${i}`} className="overflow-hidden rounded-xl border border-border bg-background">
                       <div className="relative h-36 w-full bg-muted">
-                        <Image src={fp.image} alt={`${p.name} ${fp.config}`} fill className="object-contain p-1" sizes="360px" />
+                        <CoverImage src={fp.image} alt={`${p.name} ${fp.config} floor plan`} gradient={p.gradient} label={`${fp.config} · ${fp.areaSqFt} sq.ft`} sizes="360px" />
                       </div>
                       <div className="flex items-center justify-between px-3 py-2">
                         <div>
@@ -450,7 +452,7 @@ export function ComparisonView({ properties }: { properties: Property[] }) {
               {similar.map((p) => (
                 <div key={p.id} className="overflow-hidden rounded-2xl border border-border bg-card shadow-glass">
                   <div className="relative h-32 w-full">
-                    <Image src={p.image} alt={p.name} fill className="object-cover" sizes="280px" />
+                    <CoverImage src={p.image} alt={p.name} gradient={p.gradient} label={p.name} sizes="280px" />
                   </div>
                   <div className="p-3">
                     <div className="truncate text-sm font-bold text-primary dark:text-foreground">
@@ -659,11 +661,12 @@ function sqftRange(p: Property): string {
 }
 
 function connectivity(p: Property) {
+  // Source sheets provide travel TIME in minutes (the 4th metric is Expressway).
   return [
-    { label: "Metro Station", value: `${p.location.metroKm} km` },
-    { label: "Hospital", value: `${p.location.hospitalKm} km` },
-    { label: "School", value: `${p.location.schoolKm} km` },
-    { label: "Airport", value: `${p.location.airportKm} km` },
+    { label: "Metro Station", value: `${p.location.metroKm} min` },
+    { label: "Hospital", value: `${p.location.hospitalKm} min` },
+    { label: "School", value: `${p.location.schoolKm} min` },
+    { label: "Expressway", value: `${p.location.airportKm} min` },
     { label: "Connectivity Score", value: `${p.location.connectivityIndex}/100` },
   ];
 }
