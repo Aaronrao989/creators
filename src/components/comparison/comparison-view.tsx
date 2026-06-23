@@ -351,32 +351,41 @@ export function ComparisonView({
 
           {/* Floor Plans */}
           <SectionCard id="floorplans" icon={LayoutPanelTop} title="Floor Plans">
-            <div className="grid gap-4" style={valueCols}>
+            {/* Two grid rows — all config chips share one row (so wrapping to
+                multiple lines doesn't push one card down) and all cards share the
+                next row, keeping the floor-plan cards aligned across columns. */}
+            <div className="grid gap-x-4 gap-y-2" style={valueCols}>
               {properties.map((p) => (
-                <div key={p.id}>
-                  <div className="mb-2 flex flex-wrap gap-1.5">
-                    {p.floorPlans.map((fp, i) => (
-                      <span key={`${fp.config}-${fp.areaSqFt}-${i}`} className="rounded-md bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">
-                        {fp.config}
-                      </span>
-                    ))}
-                  </div>
-                  {p.floorPlans.slice(0, 1).map((fp, i) => (
-                    <div key={`${fp.config}-${fp.areaSqFt}-${i}`} className="overflow-hidden rounded-xl border border-border bg-background">
-                      <div className="relative h-36 w-full bg-muted">
-                        <CoverImage src={fp.image} alt={`${p.name} ${fp.config} floor plan`} gradient={p.gradient} label={`${fp.config} · ${fp.areaSqFt} sq.ft`} sizes="360px" />
-                      </div>
-                      <div className="flex items-center justify-between px-3 py-2">
-                        <div>
-                          <div className="text-sm font-bold">{fp.config}</div>
-                          <div className="text-[11px] text-muted-foreground">{fp.areaSqFt} sq.ft</div>
-                        </div>
-                        <span className="text-xs font-semibold text-accent">View Floor Plan</span>
-                      </div>
-                    </div>
+                <div key={`chips-${p.id}`} className="flex flex-wrap content-start gap-1.5">
+                  {p.floorPlans.map((fp, i) => (
+                    <span key={`${fp.config}-${fp.areaSqFt}-${i}`} className="inline-flex items-center gap-1 rounded-md bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">
+                      {fp.config}
+                      <span className="font-semibold text-muted-foreground">· {fp.areaSqFt} sq.ft</span>
+                    </span>
                   ))}
                 </div>
               ))}
+              {properties.map((p) => {
+                const fp = p.floorPlans[0];
+                return (
+                  <div key={`card-${p.id}`}>
+                    {fp && (
+                      <div className="overflow-hidden rounded-xl border border-border bg-background">
+                        <div className="relative h-36 w-full bg-muted">
+                          <CoverImage src={fp.image} alt={`${p.name} ${fp.config} floor plan`} gradient={p.gradient} label={`${fp.config} · ${fp.areaSqFt} sq.ft`} sizes="360px" />
+                        </div>
+                        <div className="flex items-center justify-between px-3 py-2">
+                          <div>
+                            <div className="text-sm font-bold">{fp.config}</div>
+                            <div className="text-[11px] text-muted-foreground">{fp.areaSqFt} sq.ft</div>
+                          </div>
+                          <span className="text-xs font-semibold text-accent">View Floor Plan</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </SectionCard>
 

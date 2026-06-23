@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -79,7 +80,14 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
   const [bhks, setBhks] = React.useState<Set<number>>(new Set());
   const [possessions, setPossessions] = React.useState<Set<Possession>>(new Set());
   const [amenities, setAmenities] = React.useState<Set<AmenityKey>>(new Set());
+  const [builders, setBuilders] = React.useState<Set<string>>(new Set());
   const [sort, setSort] = React.useState("recommended");
+
+  // Distinct builder/brand names, derived from the live data (never hardcoded).
+  const builderNames = React.useMemo(
+    () => [...new Set(initial.map((p) => p.builder.name))].sort(),
+    [initial],
+  );
 
   const filtered = React.useMemo(() => {
     let list = initial.filter((p) => TABS[tab].test(p));
@@ -93,12 +101,13 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
     if (possessions.size) list = list.filter((p) => possessions.has(p.possession));
     if (amenities.size)
       list = list.filter((p) => [...amenities].every((a) => p.amenities[a]));
+    if (builders.size) list = list.filter((p) => builders.has(p.builder.name));
     const s = [...list];
     if (sort === "price-asc") s.sort((a, b) => a.priceLakh - b.priceLakh);
     if (sort === "price-desc") s.sort((a, b) => b.priceLakh - a.priceLakh);
     if (sort === "rating") s.sort((a, b) => b.builder.rating - a.builder.rating);
     return s;
-  }, [initial, tab, locations, locQuery, budgetIdx, bhks, possessions, amenities, sort]);
+  }, [initial, tab, locations, locQuery, budgetIdx, bhks, possessions, amenities, builders, sort]);
 
   const clearAll = () => {
     setLocations(new Set());
@@ -106,6 +115,7 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
     setBhks(new Set());
     setPossessions(new Set());
     setAmenities(new Set());
+    setBuilders(new Set());
     setLocQuery("");
   };
 
@@ -116,7 +126,7 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         {/* ───────────── FILTER SIDEBAR (sticky) ───────────── */}
         <aside className="h-fit lg:sticky lg:top-20">
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-glass">
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-glass lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
               <span className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-primary dark:text-foreground">
                 <SlidersHorizontal className="h-4 w-4 text-accent" /> Filter
@@ -143,6 +153,18 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
                   count={count((p) => p.city === c)}
                   checked={locations.has(c)}
                   onChange={() => setLocations((s) => toggle(s, c))}
+                />
+              ))}
+            </FilterGroup>
+
+            <FilterGroup title="Brand">
+              {builderNames.map((b) => (
+                <CheckRow
+                  key={b}
+                  label={b}
+                  count={count((p) => p.builder.name === b)}
+                  checked={builders.has(b)}
+                  onChange={() => setBuilders((s) => toggle(s, b))}
                 />
               ))}
             </FilterGroup>
@@ -494,6 +516,9 @@ const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
 
       <div className="flex flex-1 flex-col p-4">
         <h3 className="font-display text-base font-bold text-primary dark:text-foreground">{p.name}</h3>
+        <p className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-accent">
+          <Building2 className="h-3 w-3" /> {p.builder.name}
+        </p>
         <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
           <MapPin className="h-3 w-3 text-accent" /> {p.locality}
         </p>
@@ -534,11 +559,11 @@ const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
           >
             <GitCompareArrows className="h-3 w-3" /> {inCompare ? "Added" : "Compare"}
           </button>
-          <a href="tel:+919252996677">
+          <Link href={`/properties/${p.id}`}>
             <Button variant="accent" size="sm" className="h-full px-3 text-[11px]">
               View Details
             </Button>
-          </a>
+          </Link>
         </div>
       </div>
     </motion.div>
