@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Creators Home wordmark — inline SVG so it inherits `currentColor` and works on
+ * Creators Arena wordmark — inline SVG so it inherits `currentColor` and works on
  * navy, light and dark surfaces (the supplied PNG logo is navy-on-white only).
  */
 export function Logo({
@@ -42,7 +42,7 @@ export function Logo({
           </span>
           <span className="mt-0.5 flex items-center gap-1.5 text-[0.6rem] font-semibold tracking-[0.45em] opacity-70">
             <span className="h-px w-3 bg-current" />
-            HOME
+            ARENA
             <span className="h-px w-3 bg-current" />
           </span>
         </span>

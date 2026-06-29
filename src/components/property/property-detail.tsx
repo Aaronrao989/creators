@@ -82,9 +82,7 @@ export function PropertyDetail({
   const toggleCompare = useComparison((s) => s.toggle);
   const user = useAuth((s) => s.user);
   const toggleShortlist = useAuth((s) => s.toggleShortlist);
-  const saved = useAuth((s) =>
-    s.user ? (s.shortlists[s.user.email] ?? []).includes(p.id) : false,
-  );
+  const saved = useAuth((s) => s.savedIds.includes(p.id));
   const shortlisted = mounted && saved;
 
   const handleShortlist = () => {

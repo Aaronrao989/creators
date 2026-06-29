@@ -1,5 +1,5 @@
 /**
- * Domain model for the Creators Home comparison platform.
+ * Domain model for the Creators Arena comparison platform.
  *
  * These interfaces are the single contract between the UI and the data layer.
  * They are fed from PostgreSQL via the repository/service layers and mapped back
