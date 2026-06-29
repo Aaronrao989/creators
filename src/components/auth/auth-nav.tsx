@@ -13,6 +13,7 @@ export function AuthNav() {
   const router = useRouter();
   const mounted = useMounted();
   const user = useAuth((s) => s.user);
+  const ready = useAuth((s) => s.ready);
   const logout = useAuth((s) => s.logout);
   const savedCount = useAuth(selectShortlistIds).length;
   const [open, setOpen] = React.useState(false);
@@ -26,8 +27,9 @@ export function AuthNav() {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  // Stable placeholder until the persisted store has hydrated.
-  if (!mounted) {
+  // Stable placeholder until mounted AND the session has been restored (/me),
+  // so we don't flash "Log in" before a returning user is recognised.
+  if (!mounted || !ready) {
     return <div className="h-10 w-[140px]" aria-hidden />;
   }
 

@@ -3,7 +3,7 @@ import { getDataSource } from "@/lib/data-source";
 import { PropertyExplorer } from "@/components/listing/property-explorer";
 
 export const metadata: Metadata = {
-  title: "Select properties · Creators Home",
+  title: "Select properties · Creators Arena",
   description:
     "Browse and shortlist NCR residential properties to compare side-by-side.",
 };

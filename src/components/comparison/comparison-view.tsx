@@ -356,12 +356,15 @@ export function ComparisonView({
                 next row, keeping the floor-plan cards aligned across columns. */}
             <div className="grid gap-x-4 gap-y-2" style={valueCols}>
               {properties.map((p) => (
-                <div key={`chips-${p.id}`} className="flex flex-wrap content-start gap-1.5">
+                <div key={`chips-${p.id}`} className="flex flex-col gap-1">
                   {p.floorPlans.map((fp, i) => (
-                    <span key={`${fp.config}-${fp.areaSqFt}-${i}`} className="inline-flex items-center gap-1 rounded-md bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">
-                      {fp.config}
-                      <span className="font-semibold text-muted-foreground">· {fp.areaSqFt} sq.ft</span>
-                    </span>
+                    <div
+                      key={`${fp.config}-${fp.areaSqFt}-${i}`}
+                      className="flex items-center justify-between gap-3 rounded-lg bg-accent/[0.07] px-3 py-1.5 text-xs"
+                    >
+                      <span className="font-bold text-accent">{fp.config}</span>
+                      <span className="font-semibold text-muted-foreground">{fp.areaSqFt.toLocaleString("en-IN")} sq.ft</span>
+                    </div>
                   ))}
                 </div>
               ))}

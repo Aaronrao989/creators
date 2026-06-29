@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { Toaster } from "@/components/ui/toaster";
+import { AuthInit } from "@/components/auth/auth-init";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -18,7 +19,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Creators Home — Compare Properties Smarter",
+  title: "Creators Arena — Compare Properties Smarter",
   description:
     "Compare residential properties across NCR side-by-side. Price, amenities, location, builder reputation and investment potential — find the best home in minutes.",
 };
@@ -37,6 +38,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <AuthInit />
           <div className="relative flex min-h-screen flex-col">
             <SiteHeader />
             <main className="flex-1">{children}</main>

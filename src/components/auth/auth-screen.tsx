@@ -19,9 +19,9 @@ export function AuthScreen({ initialMode }: { initialMode: "login" | "signup" })
 
   const login = useAuth((s) => s.login);
   const signup = useAuth((s) => s.signup);
-  const googleSignin = useAuth((s) => s.googleSignin);
   const error = useAuth((s) => s.error);
   const setError = useAuth((s) => s.setError);
+  const [submitting, setSubmitting] = React.useState(false);
 
   const redirectAfterAuth = () => {
     const redirect =
@@ -31,15 +31,15 @@ export function AuthScreen({ initialMode }: { initialMode: "login" | "signup" })
 
   React.useEffect(() => setError(null), [mode, setError]);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
     const ok =
-      mode === "login" ? login(email, password) : signup(name, email, password);
+      mode === "login"
+        ? await login(email, password)
+        : await signup(name, email, password);
+    setSubmitting(false);
     if (ok) redirectAfterAuth();
-  };
-
-  const onGoogle = () => {
-    if (googleSignin()) redirectAfterAuth();
   };
 
   const isLogin = mode === "login";
@@ -83,24 +83,6 @@ export function AuthScreen({ initialMode }: { initialMode: "login" | "signup" })
             ))}
           </div>
 
-          {/* Google */}
-          <button
-            type="button"
-            onClick={onGoogle}
-            className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-border bg-card py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-          >
-            <GoogleIcon className="h-[18px] w-[18px]" />
-            Continue with Google
-          </button>
-
-          <div className="my-5 flex items-center gap-3">
-            <span className="h-px flex-1 bg-border" />
-            <span className="text-xs font-medium text-muted-foreground">
-              or {isLogin ? "log in" : "sign up"} with email
-            </span>
-            <span className="h-px flex-1 bg-border" />
-          </div>
-
           <form onSubmit={submit} className="space-y-3.5">
             {!isLogin && (
               <Field icon={User2} label="Full name">
@@ -142,20 +124,31 @@ export function AuthScreen({ initialMode }: { initialMode: "login" | "signup" })
               </button>
             </Field>
 
+            {isLogin && (
+              <div className="text-right">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-semibold text-accent hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            )}
+
             {error && (
               <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
                 {error}
               </p>
             )}
 
-            <Button type="submit" variant="accent" size="lg" className="w-full">
+            <Button type="submit" variant="accent" size="lg" className="w-full" disabled={submitting}>
               <Heart className="h-4 w-4" />
-              {isLogin ? "Log in" : "Create account"}
+              {submitting ? "Please wait…" : isLogin ? "Log in" : "Create account"}
             </Button>
           </form>
 
           <p className="mt-5 text-center text-sm text-muted-foreground">
-            {isLogin ? "New to Creators Home? " : "Already have an account? "}
+            {isLogin ? "New to Creators Arena? " : "Already have an account? "}
             <button
               onClick={() => setMode(isLogin ? "signup" : "login")}
               className="font-semibold text-accent hover:underline"
@@ -166,7 +159,7 @@ export function AuthScreen({ initialMode }: { initialMode: "login" | "signup" })
         </div>
 
         <p className="mt-4 text-center text-[11px] text-muted-foreground">
-          Demo build · accounts are stored locally in your browser, not on a server.{" "}
+          Your account is stored securely. We never share your details.{" "}
           <Link href="/" className="underline-offset-2 hover:underline">
             Back home
           </Link>
@@ -190,29 +183,6 @@ export function AuthScreen({ initialMode }: { initialMode: "login" | "signup" })
         }
       `}</style>
     </section>
-  );
-}
-
-function GoogleIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 48 48" className={className} aria-hidden>
-      <path
-        fill="#FFC107"
-        d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
-      />
-      <path
-        fill="#FF3D00"
-        d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
-      />
-      <path
-        fill="#4CAF50"
-        d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
-      />
-      <path
-        fill="#1976D2"
-        d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
-      />
-    </svg>
   );
 }
 
