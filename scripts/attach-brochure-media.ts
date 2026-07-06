@@ -23,6 +23,75 @@ const MEDIA: Record<string, { type: string; file: string; alt: string }[]> = {
     { type: "gallery", file: "sanctury-exterior.jpg", alt: "Northwind Sanctury tower entrance" },
     { type: "gallery", file: "sanctury-amenities.jpg", alt: "Northwind Sanctury amenities" },
   ],
+  "7Peaks Residences": [
+    { type: "cover", file: "7peaks-cover.jpg", alt: "Eldeco 7 Peaks aerial view" },
+    { type: "gallery", file: "7peaks-g1.jpg", alt: "Eldeco 7 Peaks balcony view" },
+    { type: "gallery", file: "7peaks-g2.jpg", alt: "Eldeco 7 Peaks clubhouse atrium" },
+  ],
+  Estate: [
+    { type: "cover", file: "estate-cover.jpg", alt: "SKA Estate clubhouse entrance" },
+    { type: "gallery", file: "estate-g1.jpg", alt: "SKA Estate landscaped walkway" },
+    { type: "gallery", file: "estate-g2.jpg", alt: "SKA Estate swimming pool" },
+  ],
+  Aurum: [
+    { type: "cover", file: "aurum-cover.jpg", alt: "Sobha Aurum aerial view" },
+    { type: "gallery", file: "aurum-g1.jpg", alt: "Sobha Aurum towers" },
+    { type: "gallery", file: "aurum-g2.jpg", alt: "Sobha Aurum water feature" },
+  ],
+  "Green Hights": [
+    { type: "cover", file: "divyansh-cover.jpg", alt: "Divyansh Green Hights aerial view" },
+    { type: "gallery", file: "divyansh-g1.jpg", alt: "Divyansh Green Hights towers" },
+    { type: "gallery", file: "divyansh-g2.jpg", alt: "Divyansh Green Hights lobby" },
+  ],
+  "Presidential Towers": [
+    { type: "cover", file: "ashtech-cover.jpg", alt: "Ashtech Presidential residence view" },
+    { type: "gallery", file: "ashtech-g1.jpg", alt: "Ashtech Presidential surroundings" },
+  ],
+  Rivana: [
+    { type: "cover", file: "rivana-cover.jpg", alt: "Sobha Rivana towers at dusk" },
+    { type: "gallery", file: "rivana-g1.jpg", alt: "Sobha Rivana tower" },
+    { type: "gallery", file: "rivana-g2.jpg", alt: "Sobha Rivana aerial" },
+  ],
+  Majesty: [
+    { type: "cover", file: "majesty-cover.jpg", alt: "Godrej Majesty aerial view" },
+    { type: "gallery", file: "majesty-g1.jpg", alt: "Godrej Majesty masterplan" },
+    { type: "gallery", file: "majesty-g2.jpg", alt: "Godrej Majesty clubhouse" },
+  ],
+  Yamuna: [
+    { type: "cover", file: "yamuna-cover.jpg", alt: "VVIP Yamuna towers" },
+    { type: "gallery", file: "yamuna-g1.jpg", alt: "VVIP Yamuna render" },
+    { type: "gallery", file: "yamuna-g2.jpg", alt: "VVIP Yamuna render" },
+    { type: "gallery", file: "yamuna-g3.jpg", alt: "VVIP Yamuna render" },
+  ],
+  Sunbliss: [
+    { type: "cover", file: "sunbliss-cover.jpg", alt: "Purvanchal Sunbliss site plan" },
+    { type: "gallery", file: "sunbliss-g1.jpg", alt: "Purvanchal Sunbliss highlights" },
+  ],
+  Ballads: [
+    { type: "cover", file: "ballads-cover.jpg", alt: "Eldeco Ballads of Bliss render" },
+    { type: "gallery", file: "ballads-g1.jpg", alt: "Eldeco Ballads of Bliss render" },
+    { type: "gallery", file: "ballads-g2.jpg", alt: "Eldeco Ballads of Bliss render" },
+  ],
+  Echoes: [
+    { type: "cover", file: "echoes-cover.jpg", alt: "Eldeco Echoes of Eden render" },
+    { type: "gallery", file: "echoes-g1.jpg", alt: "Eldeco Echoes of Eden render" },
+    { type: "gallery", file: "echoes-g2.jpg", alt: "Eldeco Echoes of Eden render" },
+  ],
+  Wishpers: [
+    { type: "cover", file: "whisper-cover.jpg", alt: "Eldeco Whisper of Wonder render" },
+    { type: "gallery", file: "whisper-g1.jpg", alt: "Eldeco Whisper of Wonder render" },
+    { type: "gallery", file: "whisper-g2.jpg", alt: "Eldeco Whisper of Wonder render" },
+  ],
+  CHRYSALIS: [
+    { type: "cover", file: "chrysalis-cover.jpg", alt: "Gaur Chrysalis towers" },
+    { type: "gallery", file: "chrysalis-g1.jpg", alt: "Gaur Chrysalis clubhouse" },
+    { type: "gallery", file: "chrysalis-g2.jpg", alt: "Gaur Chrysalis clubhouse" },
+  ],
+  SEASONS: [
+    { type: "cover", file: "arihant-cover.jpg", alt: "Arihant Seasons render" },
+    { type: "gallery", file: "arihant-g1.jpg", alt: "Arihant Seasons balcony view" },
+    { type: "gallery", file: "arihant-g2.jpg", alt: "Arihant Seasons lifestyle" },
+  ],
 };
 
 async function main() {

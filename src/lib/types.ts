@@ -15,6 +15,7 @@ export type City =
   | "Noida"
   | "Greater Noida"
   | "Greater Noida West"
+  | "Yamuna Expressway"
   | "Gurugram"
   | "Delhi";
 
@@ -100,7 +101,11 @@ export interface Property {
   areaAcres: number;
   /** Number of towers (0 for villa/plotted projects). */
   towers: number;
+  /** Total number of units in the project (null when the sheet omits it). */
+  totalUnits: number | null;
   image: string;
+  /** Additional brochure images (gallery); empty when none exist. */
+  gallery: string[];
   /** Tailwind-friendly gradient stops for the card fallback / accent. */
   gradient: [string, string];
   amenities: Record<AmenityKey, boolean>;

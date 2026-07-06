@@ -1,15 +1,16 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Building2,
   CalendarCheck,
-  CheckCircle2,
   ChevronRight,
   Dumbbell,
+  Expand,
   GitCompareArrows,
   Heart,
   MapPin,
@@ -18,6 +19,7 @@ import {
   Star,
   Train,
   Waves,
+  X,
 } from "lucide-react";
 import type { AmenityKey, Property } from "@/lib/types";
 import { useComparison } from "@/store/comparison";
@@ -50,19 +52,6 @@ const AMENITY_ORDER: AmenityKey[] = [
   "powerBackup",
 ];
 
-/** 0–100 standalone investment indicator (same formula as the listing cards). */
-function standaloneScore(p: Property): number {
-  return Math.min(
-    100,
-    Math.round(
-      p.investment.appreciationPct * 2 +
-        p.investment.rentalYieldPct * 3 +
-        p.investment.demandIndex * 0.35 +
-        p.builder.rating * 4,
-    ),
-  );
-}
-
 export function PropertyDetail({
   property: p,
   similar,
@@ -93,15 +82,17 @@ export function PropertyDetail({
     toggleShortlist(p.id);
   };
 
-  const score = standaloneScore(p);
-  const ratingOf5 = +(score / 20).toFixed(1); // 0–100 → 0–5
   const rating = reviewAvg ?? p.builder.rating;
 
   const [activePlan, setActivePlan] = React.useState(0);
   const plan = p.floorPlans[activePlan] ?? p.floorPlans[0];
+  const [zoom, setZoom] = React.useState<string | null>(null);
 
   const mapsQuery = encodeURIComponent(`${p.name} ${p.locality} ${p.city}`);
   const mapsLink = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+
+  // Gallery side tiles — ONLY real brochure images (no empty placeholder slots).
+  const tiles: string[] = [...p.gallery].slice(0, 4);
 
   const loc = [
     { icon: Train, label: "Metro Station", value: p.location.metroKm },
@@ -109,16 +100,6 @@ export function PropertyDetail({
     { icon: Building2, label: "School", value: p.location.schoolKm },
     { icon: MapPin, label: "Expressway", value: p.location.airportKm },
   ];
-
-  const highlights =
-    p.highlights.length > 0
-      ? p.highlights.slice(0, 5)
-      : [
-          "High Appreciation Potential",
-          "Strong Rental Demand",
-          "Trusted Builder",
-          "Strong Demand Forecast",
-        ];
 
   const faqs = [
     {
@@ -158,21 +139,24 @@ export function PropertyDetail({
         <span className="font-semibold text-accent">Property Details</span>
       </div>
 
-      {/* Gallery */}
-      <div className="grid gap-3 lg:grid-cols-[1.6fr_1fr]">
+      {/* Gallery — right column only appears when there are real photos, and it
+          stretches to fill so there are never empty placeholder tiles. */}
+      <div className={cn("grid gap-3", tiles.length > 0 && "lg:grid-cols-[1.6fr_1fr]")}>
         <div className="relative h-64 overflow-hidden rounded-2xl sm:h-80 lg:h-[26rem]">
           <CoverImage src={p.image} alt={p.name} gradient={p.gradient} label={p.name} sizes="(max-width:1024px) 100vw, 60vw" />
           <span className="absolute left-4 top-4 rounded-lg bg-white/90 px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm backdrop-blur">
             View Photos
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="relative h-[7.5rem] overflow-hidden rounded-xl lg:h-[8.4rem]">
-              <CoverImage src={i === 0 ? p.image : ""} alt={`${p.name} view ${i + 1}`} gradient={p.gradient} sizes="30vw" />
-            </div>
-          ))}
-        </div>
+        {tiles.length > 0 && (
+          <div className="flex flex-col gap-3 lg:h-[26rem]">
+            {tiles.map((src, i) => (
+              <div key={i} className="relative h-32 flex-1 overflow-hidden rounded-xl">
+                <CoverImage src={src} alt={`${p.name} view ${i + 1}`} gradient={p.gradient} sizes="30vw" />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Action buttons */}
@@ -235,35 +219,19 @@ export function PropertyDetail({
       </div>
 
       {/* Quick stats */}
-      <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-5 shadow-glass sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-5 shadow-glass sm:grid-cols-3 lg:grid-cols-6">
         <Stat icon={CalendarCheck} label="Possession" value={p.possession === "Ready to Move" ? "Ready" : p.possessionDate} />
         <Stat icon={Building2} label="Total Area" value={`${p.areaAcres} Acres`} />
         <Stat icon={Building2} label="Towers" value={`${p.towers} Towers`} />
+        {p.totalUnits ? (
+          <Stat icon={Building2} label="Total Units" value={p.totalUnits.toLocaleString("en-IN")} />
+        ) : null}
         <Stat icon={ShieldCheck} label="Clubhouse" value={p.amenities.clubhouse ? "Yes" : "No"} />
         <Stat icon={Train} label="Metro Distance" value={`${p.location.metroKm} min`} />
       </div>
 
-      {/* Investment + Price & Configuration */}
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1.4fr]">
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-glass">
-          <h2 className="mb-4 font-display text-base font-bold text-primary dark:text-foreground">Investment Potential</h2>
-          <div className="flex items-center gap-4">
-            <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 border-success/30">
-              <div className="text-center leading-none">
-                <div className="font-display text-xl font-extrabold text-success">{ratingOf5}</div>
-                <div className="text-[10px] text-muted-foreground">/5</div>
-              </div>
-            </div>
-            <ul className="space-y-1.5">
-              {highlights.map((h) => (
-                <li key={h} className="flex items-center gap-2 text-xs font-medium text-foreground">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-success" /> {h}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
+      {/* Price & Configuration */}
+      <div className="mt-4">
         <div className="rounded-2xl border border-border bg-card p-5 shadow-glass">
           <h2 className="mb-3 font-display text-base font-bold text-primary dark:text-foreground">Price & Configuration</h2>
           <div className="overflow-hidden rounded-xl border border-border">
@@ -311,17 +279,25 @@ export function PropertyDetail({
           </div>
           {plan && (
             <div className="grid gap-3 sm:grid-cols-[1.3fr_1fr]">
-              <div className="relative h-48 overflow-hidden rounded-xl border border-border">
+              <button
+                type="button"
+                onClick={() => plan.image && setZoom(plan.image)}
+                className={cn(
+                  "group relative h-48 overflow-hidden rounded-xl border border-border",
+                  plan.image ? "cursor-zoom-in" : "cursor-default",
+                )}
+              >
                 <CoverImage src={plan.image} alt={`${p.name} ${plan.config} floor plan`} gradient={p.gradient} label={`${plan.config} · ${plan.areaSqFt.toLocaleString("en-IN")} sq.ft`} sizes="360px" />
-              </div>
+                {plan.image && (
+                  <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-lg bg-black/60 px-2 py-1 text-[11px] font-semibold text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100">
+                    <Expand className="h-3 w-3" /> Expand
+                  </span>
+                )}
+              </button>
               <div className="rounded-xl bg-muted/50 p-3">
                 <div className="text-sm font-bold text-foreground">{plan.config} Floor Plan</div>
                 <div className="mt-0.5 text-xs text-muted-foreground">Super Area: {plan.areaSqFt.toLocaleString("en-IN")} sq.ft</div>
                 <div className="mt-2 text-sm font-bold text-accent">{plan.priceLabel}</div>
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  Configuration shown is as provided by the developer. Download the
-                  brochure for the detailed unit layout and dimensions.
-                </p>
               </div>
             </div>
           )}
@@ -443,6 +419,26 @@ export function PropertyDetail({
           <p className="mt-2 text-center text-[11px] text-muted-foreground">Call us: +91 92529 96677</p>
         </div>
       </div>
+
+      {/* Floor-plan lightbox */}
+      {zoom && (
+        <div
+          onClick={() => setZoom(null)}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+        >
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={() => setZoom(null)}
+            className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="relative h-[88vh] w-[94vw]" onClick={(e) => e.stopPropagation()}>
+            <Image src={zoom} alt="Floor plan" fill unoptimized className="object-contain" sizes="94vw" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

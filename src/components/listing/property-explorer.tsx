@@ -36,6 +36,15 @@ const BUDGETS: { label: string; test: (p: Property) => boolean }[] = [
   { label: "₹1 Cr - ₹2 Cr", test: (p) => p.priceLakh >= 100 && p.priceLakh < 200 },
   { label: "Above ₹2 Cr", test: (p) => p.priceLakh >= 200 },
 ];
+// Filter by max unit size (super area, sq.ft) across a project's configs.
+const maxArea = (p: Property) =>
+  p.floorPlans.length ? Math.max(...p.floorPlans.map((f) => f.areaSqFt)) : 0;
+const AREAS: { label: string; test: (p: Property) => boolean }[] = [
+  { label: "Under 1,000", test: (p) => maxArea(p) < 1000 },
+  { label: "1,000 - 1,500", test: (p) => maxArea(p) >= 1000 && maxArea(p) < 1500 },
+  { label: "1,500 - 2,500", test: (p) => maxArea(p) >= 1500 && maxArea(p) < 2500 },
+  { label: "2,500+ sq.ft", test: (p) => maxArea(p) >= 2500 },
+];
 const AMENITY_OPTS: { key: AmenityKey; label: string }[] = [
   { key: "pool", label: "Swimming Pool" },
   { key: "clubhouse", label: "Clubhouse" },
@@ -77,6 +86,7 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
   const [locQuery, setLocQuery] = React.useState("");
   const [locations, setLocations] = React.useState<Set<City>>(new Set());
   const [budgetIdx, setBudgetIdx] = React.useState<number | null>(null);
+  const [areaIdx, setAreaIdx] = React.useState<number | null>(null);
   const [bhks, setBhks] = React.useState<Set<number>>(new Set());
   const [possessions, setPossessions] = React.useState<Set<Possession>>(new Set());
   const [amenities, setAmenities] = React.useState<Set<AmenityKey>>(new Set());
@@ -97,6 +107,7 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
         `${p.locality} ${p.city}`.toLowerCase().includes(locQuery.toLowerCase()),
       );
     if (budgetIdx != null) list = list.filter(BUDGETS[budgetIdx].test);
+    if (areaIdx != null) list = list.filter(AREAS[areaIdx].test);
     if (bhks.size) list = list.filter((p) => bhkNums(p).some((b) => bhks.has(b)));
     if (possessions.size) list = list.filter((p) => possessions.has(p.possession));
     if (amenities.size)
@@ -107,11 +118,12 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
     if (sort === "price-desc") s.sort((a, b) => b.priceLakh - a.priceLakh);
     if (sort === "rating") s.sort((a, b) => b.builder.rating - a.builder.rating);
     return s;
-  }, [initial, tab, locations, locQuery, budgetIdx, bhks, possessions, amenities, builders, sort]);
+  }, [initial, tab, locations, locQuery, budgetIdx, areaIdx, bhks, possessions, amenities, builders, sort]);
 
   const clearAll = () => {
     setLocations(new Set());
     setBudgetIdx(null);
+    setAreaIdx(null);
     setBhks(new Set());
     setPossessions(new Set());
     setAmenities(new Set());
@@ -190,6 +202,25 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
                     )}
                   >
                     {b.label}
+                  </button>
+                ))}
+              </div>
+            </FilterGroup>
+
+            <FilterGroup title="Area (sq.ft)">
+              <div className="grid grid-cols-2 gap-2">
+                {AREAS.map((a, i) => (
+                  <button
+                    key={a.label}
+                    onClick={() => setAreaIdx(areaIdx === i ? null : i)}
+                    className={cn(
+                      "rounded-lg border px-2 py-1.5 text-xs font-semibold transition-colors",
+                      areaIdx === i
+                        ? "border-accent bg-accent/10 text-accent"
+                        : "border-border text-foreground hover:border-accent/50",
+                    )}
+                  >
+                    {a.label}
                   </button>
                 ))}
               </div>
@@ -459,19 +490,6 @@ function CheckRow({
   );
 }
 
-/** Standalone 0–100 investment indicator for a single card (no comparison set).
- *  Tuned so real projects land in a believable ~65–90 spread (not maxed out). */
-function standaloneScore(p: Property): number {
-  return Math.min(
-    100,
-    Math.round(
-      p.investment.appreciationPct * 2 +
-        p.investment.rentalYieldPct * 3 +
-        p.investment.demandIndex * 0.35 +
-        p.builder.rating * 4,
-    ),
-  );
-}
 
 const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
   function ListingCard({ property: p }, ref) {
@@ -484,7 +502,6 @@ const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
   const toggleShortlist = useAuth((s) => s.toggleShortlist);
   const saved = useAuth((s) => s.savedIds.includes(p.id));
   const shortlisted = mounted && saved;
-  const score = standaloneScore(p);
 
   const handleShortlist = () => {
     if (!user) {
@@ -518,7 +535,7 @@ const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
           <Building2 className="h-3 w-3" /> {p.builder.name}
         </p>
         <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-          <MapPin className="h-3 w-3 text-accent" /> {p.locality}
+          <MapPin className="h-3 w-3 text-accent" /> {p.locality}, {p.city}
         </p>
         <div className="mt-2 font-display text-lg font-extrabold text-accent">
           {formatPriceLakh(p.priceLakh)}
@@ -528,14 +545,10 @@ const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
           {p.configs} · {sqftRange(p)}
         </p>
 
-        <div className="mt-3 rounded-lg bg-success/[0.08] p-2">
-          <div className="mb-1 flex items-center justify-between text-[11px] font-semibold">
-            <span className="text-muted-foreground">Investment Score</span>
-            <span className="text-success">{(score / 10).toFixed(1)}/10</span>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-success" style={{ width: `${score}%` }} />
-          </div>
+        <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg bg-muted/60 px-2.5 py-2 text-[11px] text-muted-foreground">
+          <span className="font-semibold text-foreground">{p.possession}</span>
+          {p.totalUnits ? <span>· {p.totalUnits.toLocaleString("en-IN")} units</span> : null}
+          <span>· {p.towers} {p.towers === 1 ? "tower" : "towers"}</span>
         </div>
 
         <div className="mt-3 grid grid-cols-[1fr_1fr_auto] gap-1.5">
