@@ -10,6 +10,7 @@ export const CITIES: City[] = [
   "Noida",
   "Greater Noida",
   "Greater Noida West",
+  "Yamuna Expressway",
   "Gurugram",
   "Delhi",
 ];

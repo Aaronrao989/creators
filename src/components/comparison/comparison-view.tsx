@@ -40,7 +40,6 @@ const NAV = [
   { id: "amenities", icon: Dumbbell, label: "Amenities" },
   { id: "location", icon: MapPin, label: "Location & Connectivity" },
   { id: "floorplans", icon: LayoutPanelTop, label: "Floor Plans" },
-  { id: "investment", icon: TrendingUp, label: "Investment Potential" },
   { id: "bestfor", icon: Users, label: "Best For" },
   { id: "similar", icon: Building2, label: "Similar Properties" },
 ];
@@ -82,6 +81,11 @@ export function ComparisonView({
   };
 
   const valueCols = { gridTemplateColumns: `repeat(${n}, minmax(0,1fr))` };
+
+  // Per-property selected floor-plan (click a config to switch the preview).
+  const [planIdx, setPlanIdx] = React.useState<Record<string, number>>({});
+  const selPlan = (id: string) => planIdx[id] ?? 0;
+  const [zoom, setZoom] = React.useState<string | null>(null);
 
   return (
     <div className="bg-muted/30">
@@ -275,6 +279,7 @@ export function ComparisonView({
                   { label: "Configurations", values: properties.map((p) => p.configs) },
                   { label: "Total Area", values: properties.map((p) => `${p.areaAcres} Acres`) },
                   { label: "Towers", values: properties.map((p) => (p.towers ? `${p.towers} Towers` : "—")) },
+                  { label: "Total Units", values: properties.map((p) => (p.totalUnits ? `${p.totalUnits.toLocaleString("en-IN")} Units` : "—")) },
                   { label: "Possession", values: properties.map((p) => p.possessionDate.replace(/^.*· /, "")) },
                   { label: "RERA ID", values: properties.map((p) => p.reraId) },
                 ]}
@@ -357,32 +362,50 @@ export function ComparisonView({
             <div className="grid gap-x-4 gap-y-2" style={valueCols}>
               {properties.map((p) => (
                 <div key={`chips-${p.id}`} className="flex flex-col gap-1">
-                  {p.floorPlans.map((fp, i) => (
-                    <div
-                      key={`${fp.config}-${fp.areaSqFt}-${i}`}
-                      className="flex items-center justify-between gap-3 rounded-lg bg-accent/[0.07] px-3 py-1.5 text-xs"
-                    >
-                      <span className="font-bold text-accent">{fp.config}</span>
-                      <span className="font-semibold text-muted-foreground">{fp.areaSqFt.toLocaleString("en-IN")} sq.ft</span>
-                    </div>
-                  ))}
+                  {p.floorPlans.map((fp, i) => {
+                    const active = selPlan(p.id) === i;
+                    return (
+                      <button
+                        type="button"
+                        key={`${fp.config}-${fp.areaSqFt}-${i}`}
+                        onClick={() => setPlanIdx((s) => ({ ...s, [p.id]: i }))}
+                        className={cn(
+                          "flex items-center justify-between gap-3 rounded-lg px-3 py-1.5 text-left text-xs transition-colors",
+                          active ? "bg-accent text-accent-foreground" : "bg-accent/[0.07] hover:bg-accent/15",
+                        )}
+                      >
+                        <span className={cn("font-bold", active ? "text-accent-foreground" : "text-accent")}>{fp.config}</span>
+                        <span className={cn("font-semibold", active ? "text-accent-foreground/90" : "text-muted-foreground")}>{fp.areaSqFt.toLocaleString("en-IN")} sq.ft</span>
+                      </button>
+                    );
+                  })}
                 </div>
               ))}
               {properties.map((p) => {
-                const fp = p.floorPlans[0];
+                const fp = p.floorPlans[selPlan(p.id)] ?? p.floorPlans[0];
                 return (
                   <div key={`card-${p.id}`}>
                     {fp && (
                       <div className="overflow-hidden rounded-xl border border-border bg-background">
-                        <div className="relative h-36 w-full bg-muted">
+                        <button
+                          type="button"
+                          onClick={() => fp.image && setZoom(fp.image)}
+                          className={cn("relative block h-44 w-full bg-muted", fp.image && "cursor-zoom-in")}
+                        >
                           <CoverImage src={fp.image} alt={`${p.name} ${fp.config} floor plan`} gradient={p.gradient} label={`${fp.config} · ${fp.areaSqFt} sq.ft`} sizes="360px" />
-                        </div>
+                        </button>
                         <div className="flex items-center justify-between px-3 py-2">
                           <div>
                             <div className="text-sm font-bold">{fp.config}</div>
-                            <div className="text-[11px] text-muted-foreground">{fp.areaSqFt} sq.ft</div>
+                            <div className="text-[11px] text-muted-foreground">{fp.areaSqFt.toLocaleString("en-IN")} sq.ft</div>
                           </div>
-                          <span className="text-xs font-semibold text-accent">View Floor Plan</span>
+                          <button
+                            type="button"
+                            onClick={() => fp.image && setZoom(fp.image)}
+                            className={cn("text-xs font-semibold text-accent", fp.image ? "hover:underline" : "opacity-50")}
+                          >
+                            {fp.image ? "View Floor Plan" : "Floor Plan"}
+                          </button>
                         </div>
                       </div>
                     )}
@@ -390,37 +413,6 @@ export function ComparisonView({
                 );
               })}
             </div>
-          </SectionCard>
-
-          {/* Investment Potential */}
-          <SectionCard id="investment" icon={TrendingUp} title="Investment Potential">
-            <div className="grid gap-4" style={valueCols}>
-              {properties.map((p) => {
-                const s = result.scores[p.id];
-                const rating = Math.round((s.investmentScore / 100) * 5 * 10) / 10;
-                const color = scoreTier(s.investmentScore).color;
-                return (
-                  <div key={p.id} className="flex items-start gap-4">
-                    <RatingRing rating={rating} color={color} />
-                    <ul className="space-y-1.5 pt-1">
-                      {investmentBullets(p).map((b) => (
-                        <li key={b.label} className="flex items-center gap-1.5 text-xs">
-                          {b.ok ? (
-                            <Check className="h-3.5 w-3.5 text-success" />
-                          ) : (
-                            <span className="h-3.5 w-3.5 text-center text-muted-foreground">·</span>
-                          )}
-                          <span className={b.ok ? "text-foreground" : "text-muted-foreground"}>
-                            {b.label}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
-            </div>
-            <MoreLink label="View Detailed Analysis" />
           </SectionCard>
 
           {/* Best For */}
@@ -485,6 +477,26 @@ export function ComparisonView({
           </div>
         </div>
       </div>
+
+      {/* Floor-plan lightbox */}
+      {zoom && (
+        <div
+          onClick={() => setZoom(null)}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+        >
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={() => setZoom(null)}
+            className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="relative h-[88vh] w-[94vw]" onClick={(e) => e.stopPropagation()}>
+            <Image src={zoom} alt="Floor plan" fill unoptimized className="object-contain" sizes="94vw" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

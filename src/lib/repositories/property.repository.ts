@@ -86,6 +86,9 @@ function mapProperty(p: PropertyRow): Property {
     p.media.find((m) => m.type === "cover")?.url ??
     p.media.find((m) => m.type === "gallery")?.url ??
     "";
+  const gallery = p.media
+    .filter((m) => m.type === "gallery")
+    .map((m) => m.url);
 
   return {
     id: p.id,
@@ -104,7 +107,9 @@ function mapProperty(p: PropertyRow): Property {
     priceRangeLabel: p.pricing?.priceRangeLabel ?? "",
     areaAcres: p.areaAcres,
     towers: p.towers,
+    totalUnits: p.totalUnits ?? null,
     image: cover,
+    gallery,
     gradient: [p.gradientFrom, p.gradientTo],
     amenities,
     location: {
