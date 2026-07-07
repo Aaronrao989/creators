@@ -3,30 +3,61 @@
 import * as React from "react";
 import Link from "next/link";
 import { GitCompareArrows, Scale } from "lucide-react";
-import { propertyById } from "@/data/properties";
 import { MIN_COMPARE, useComparison } from "@/store/comparison";
 import { ComparisonView } from "@/components/comparison/comparison-view";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api/client";
+import type { Property } from "@/lib/types";
 
 export function CompareClient() {
   const selected = useComparison((s) => s.selected);
   const [hydrated, setHydrated] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  const [properties, setProperties] = React.useState<Property[]>([]);
+  const [similar, setSimilar] = React.useState<Property[]>([]);
 
-  // Selection lives in localStorage (zustand persist) — wait for hydration so
-  // SSR/CSR markup matches and we don't flash the empty state.
+  // Selection lives in localStorage (zustand persist) — wait for hydration.
   React.useEffect(() => setHydrated(true), []);
 
-  if (!hydrated) {
+  const key = selected.join(",");
+  React.useEffect(() => {
+    if (!hydrated) return;
+    if (selected.length < MIN_COMPARE) {
+      setProperties([]);
+      setSimilar([]);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    api
+      .compare(selected)
+      .then((payload) => {
+        if (cancelled) return;
+        setProperties(payload.properties);
+        setSimilar(payload.similar);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setProperties([]);
+        setSimilar([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, key]);
+
+  if (!hydrated || loading) {
     return (
       <div className="container flex min-h-[60vh] items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-accent" />
       </div>
     );
   }
-
-  const properties = selected
-    .map((id) => propertyById(id))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
   if (properties.length < MIN_COMPARE) {
     return (
@@ -38,9 +69,8 @@ export function CompareClient() {
           Pick at least {MIN_COMPARE} properties
         </h1>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-          {properties.length === 1
-            ? "You've selected one property. Add at least one more to see a side-by-side comparison."
-            : "Head to the selection page and choose the homes you'd like to compare."}
+          Head to the selection page and choose the homes you&apos;d like to
+          compare.
         </p>
         <Link href="/properties" className="mt-6">
           <Button variant="accent" size="md">
@@ -51,5 +81,5 @@ export function CompareClient() {
     );
   }
 
-  return <ComparisonView properties={properties} />;
+  return <ComparisonView properties={properties} similar={similar} />;
 }

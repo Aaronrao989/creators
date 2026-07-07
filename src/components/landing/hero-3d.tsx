@@ -233,7 +233,7 @@ function DeckCard({
     <div className={float} style={{ transform: `rotate(${rotate}deg)` }}>
       <div className="glass w-60 overflow-hidden rounded-2xl shadow-lift">
         <div className="relative h-28 w-full">
-          <Image src={image} alt={name} fill className="object-cover" sizes="240px" />
+          <Image src={image} alt={name} fill priority unoptimized className="object-cover" sizes="240px" />
           <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur">
             <Star className="h-2.5 w-2.5 fill-accent text-accent" />
             {score}
@@ -264,6 +264,8 @@ function WinnerCard() {
             src="/properties/render-blue.jpg"
             alt="Godrej Woods"
             fill
+            priority
+            unoptimized
             className="object-cover"
             sizes="256px"
           />

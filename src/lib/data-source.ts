@@ -1,15 +1,17 @@
-import { properties as localProperties, propertyById } from "@/data/properties";
 import type { City, Possession, Property, PropertyKind } from "@/lib/types";
 
 /**
  * Data-layer seam.
  *
- * The UI talks ONLY to this `PropertyDataSource` interface. Today it is backed by
- * the local dummy dataset (`LocalDataSource`). To move to the live CMS later,
- * implement `WordPressDataSource` against the same interface and swap the export
- * in `getDataSource()` — no UI component changes required.
+ * The UI talks ONLY to this `PropertyDataSource` interface. It is now backed by
+ * PostgreSQL via the service/repository layer (`PrismaDataSource`). Swapping the
+ * backend later (e.g. a remote API) means implementing this same interface — no
+ * UI changes required.
  *
- *   UI  ──►  PropertyDataSource  ──►  Local | WordPress | Custom API
+ *   UI ──► PropertyDataSource ──► propertyService ──► repository ──► Prisma/PG
+ *
+ * NOTE: this module is server-only (it reaches the DB). Client components must
+ * go through the API routes under `/src/app/api`, not import this directly.
  */
 
 export interface PropertyFilters {
@@ -28,23 +30,23 @@ export interface PropertyDataSource {
   getMany(ids: string[]): Promise<Property[]>;
 }
 
-class LocalDataSource implements PropertyDataSource {
+class PrismaDataSource implements PropertyDataSource {
   async list(filters?: PropertyFilters): Promise<Property[]> {
-    return applyFilters(localProperties, filters);
+    const { propertyService } = await import("@/lib/services/property.service");
+    return propertyService.list(filters);
   }
   async get(id: string): Promise<Property | undefined> {
-    return propertyById(id);
+    const { propertyService } = await import("@/lib/services/property.service");
+    return (await propertyService.getById(id)) ?? undefined;
   }
   async getMany(ids: string[]): Promise<Property[]> {
-    return ids
-      .map((id) => propertyById(id))
-      .filter((p): p is Property => Boolean(p));
+    const { propertyService } = await import("@/lib/services/property.service");
+    return propertyService.getByIds(ids);
   }
 }
 
 /**
- * Pure, synchronous filter used by both the data source and client components
- * (which already hold the full list in memory for instant filtering).
+ * Pure, synchronous filter helper (kept for any in-memory filtering needs).
  */
 export function applyFilters(
   list: Property[],
@@ -81,26 +83,11 @@ export function applyFilters(
 
 let instance: PropertyDataSource | null = null;
 
-/** Returns the active data source. Swap implementation here for WordPress. */
+/** Returns the active (PostgreSQL-backed) data source. */
 export function getDataSource(): PropertyDataSource {
-  if (!instance) instance = new LocalDataSource();
+  if (!instance) instance = new PrismaDataSource();
   return instance;
 }
 
-/* ---- derived option lists for filter UI (from the local set) ------------- */
-export const CITIES: City[] = [
-  "Noida",
-  "Greater Noida",
-  "Greater Noida West",
-  "Gurugram",
-  "Delhi",
-];
-export const KINDS: PropertyKind[] = ["Apartment", "Villa", "Plot", "Builder Floor"];
-export const POSSESSIONS: Possession[] = [
-  "Ready to Move",
-  "Under Construction",
-  "New Launch",
-];
-export const BUILDER_NAMES = Array.from(
-  new Set(localProperties.map((p) => p.builder.name)),
-).sort();
+// Back-compat re-exports (constants live in `@/lib/constants`).
+export { CITIES, KINDS, POSSESSIONS } from "@/lib/constants";

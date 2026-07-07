@@ -9,3 +9,10 @@ npm-debug.log*
 .vercel
 next-env.d.ts
 .eslintcache
+
+/src/generated/prisma
+
+# local env
+.env
+tsconfig.tsbuildinfo
+.pgdata/

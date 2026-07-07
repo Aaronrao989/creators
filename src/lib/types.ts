@@ -1,10 +1,10 @@
 /**
- * Domain model for the Creators Home comparison platform.
+ * Domain model for the Creators Arena comparison platform.
  *
  * These interfaces are the single contract between the UI and the data layer.
- * Today they are fed by the local dummy dataset (`/data/properties.ts`); later a
- * WordPress / custom REST adapter can satisfy the exact same shapes without any
- * UI changes (see `/lib/data-source.ts`).
+ * They are fed from PostgreSQL via the repository/service layers and mapped back
+ * to these shapes in `property.repository.ts`, so the UI contract never changes
+ * regardless of the backing store (see `/lib/data-source.ts`).
  */
 
 export type Possession = "Ready to Move" | "Under Construction" | "New Launch";
@@ -15,6 +15,7 @@ export type City =
   | "Noida"
   | "Greater Noida"
   | "Greater Noida West"
+  | "Yamuna Expressway"
   | "Gurugram"
   | "Delhi";
 
@@ -96,7 +97,15 @@ export interface Property {
   priceLakh: number;
   pricePerSqFt: number;
   priceRangeLabel: string;
+  /** Total project land area in acres (shown in Quick Overview). */
+  areaAcres: number;
+  /** Number of towers (0 for villa/plotted projects). */
+  towers: number;
+  /** Total number of units in the project (null when the sheet omits it). */
+  totalUnits: number | null;
   image: string;
+  /** Additional brochure images (gallery); empty when none exist. */
+  gallery: string[];
   /** Tailwind-friendly gradient stops for the card fallback / accent. */
   gradient: [string, string];
   amenities: Record<AmenityKey, boolean>;
@@ -104,6 +113,25 @@ export interface Property {
   investment: InvestmentMetrics;
   floorPlans: FloorPlan[];
   highlights: string[];
+}
+
+/** A user/visitor review of a property. */
+export interface PropertyReview {
+  id: string;
+  propertyId: string;
+  authorName: string;
+  /** 1–5 stars. */
+  rating: number;
+  comment: string;
+  createdAt: string; // ISO timestamp
+}
+
+/** A user's saved comparison (a named set of properties). */
+export interface SavedComparison {
+  id: string;
+  name: string | null;
+  propertyIds: string[];
+  createdAt: string;
 }
 
 /* ------------------------------------------------------------------ */

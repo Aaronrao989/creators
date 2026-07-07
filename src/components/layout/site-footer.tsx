@@ -28,7 +28,7 @@ export function SiteFooter() {
             <Logo />
           </div>
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-primary-foreground/70">
-            At Creators Home, we don&apos;t just close deals — we help you find
+            At Creators Arena, we don&apos;t just close deals — we help you find
             the perfect space to grow, live, or build your dreams. Your gateway
             to smart property decisions.
           </p>
@@ -73,12 +73,15 @@ export function SiteFooter() {
 
       <div className="border-t border-white/10">
         <div className="container flex flex-col items-center justify-between gap-2 py-5 text-xs text-primary-foreground/55 sm:flex-row">
-          <span>© {new Date().getFullYear()} Creators Home. All rights reserved.</span>
-          <span>
-            Comparison platform · Demo build with dummy data ·{" "}
+          <span>© {new Date().getFullYear()} Creators Arena. All rights reserved.</span>
+          <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <Link href="/properties" className="underline-offset-2 hover:underline">
-              Start comparing
+              Properties
             </Link>
+            <Link href="/compare" className="underline-offset-2 hover:underline">
+              Compare
+            </Link>
+            <span>Smart property comparison across NCR</span>
           </span>
         </div>
       </div>

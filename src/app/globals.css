@@ -4,8 +4,8 @@
 
 @layer base {
   :root {
-    /* Creators Home — light theme (white + lavender) */
-    --background: 264 50% 98.5%;
+    /* Creators Home — light theme (whiter + a hint of lavender) */
+    --background: 264 30% 99.4%;
     --foreground: 263 45% 16%;
 
     --card: 0 0% 100%;
