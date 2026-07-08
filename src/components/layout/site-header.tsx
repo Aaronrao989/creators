@@ -8,6 +8,7 @@ import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { AuthNav } from "@/components/auth/auth-nav";
+import { MobileNav } from "@/components/layout/mobile-nav";
 import { useComparison } from "@/store/comparison";
 import { useMounted } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
@@ -15,8 +16,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/", label: "Home" },
   { href: "/properties", label: "Properties" },
-  { href: "/#how-it-works", label: "How it works" },
-  { href: "/#why-compare", label: "Why compare" },
+  { href: "/compare", label: "Compare" },
 ];
 
 export function SiteHeader() {
@@ -49,7 +49,7 @@ export function SiteHeader() {
           <Logo />
         </Link>
 
-        <nav className="ml-2 hidden items-center gap-1 md:flex">
+        <nav className="ml-2 hidden items-center gap-1 lg:flex">
           {NAV.map((item) => {
             const active =
               item.href === "/"
@@ -84,7 +84,11 @@ export function SiteHeader() {
             </Button>
           </Link>
           <ThemeToggle />
-          <AuthNav />
+          {/* Desktop auth cluster; tablet/mobile use the drawer below. */}
+          <div className="hidden lg:block">
+            <AuthNav />
+          </div>
+          <MobileNav nav={NAV} />
         </div>
       </div>
     </header>

@@ -19,16 +19,24 @@ const idList = z
 
 export const compareSchema = z.object({ ids: idList });
 
-export const createReviewSchema = z.object({
-  authorName: z.string().trim().min(1).max(120),
+/** Client-supplied review body. `authorName`/`userId` are set server-side from
+ *  the authenticated session, never trusted from the request. */
+export const submitReviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
   comment: z.string().trim().min(1).max(2000),
-  userId: z.string().uuid().optional(),
 });
-export type CreateReviewInput = z.infer<typeof createReviewSchema>;
+export type SubmitReviewInput = z.infer<typeof submitReviewSchema>;
 
+/** Full record the service persists (assembled from the session + body). */
+export interface CreateReviewInput {
+  authorName: string;
+  rating: number;
+  comment: string;
+  userId?: string;
+}
+
+/** `userId` is derived from the session, so it is NOT accepted from the body. */
 export const createSavedComparisonSchema = z.object({
-  userId: z.string().uuid(),
   propertyIds: idList,
   name: z.string().trim().max(120).optional(),
 });
@@ -38,5 +46,4 @@ export type CreateSavedComparisonInput = z.infer<
 
 export const deleteSavedComparisonSchema = z.object({
   id: z.string().uuid(),
-  userId: z.string().uuid(),
 });

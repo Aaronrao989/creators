@@ -123,8 +123,14 @@ export function compareProperties(selected: Property[]): ComparisonResult {
   const invRaw = set.map(investmentRaw);
 
   const bounds = (arr: number[]) => ({ min: Math.min(...arr), max: Math.max(...arr) });
+  // Price bounds ignore unknown prices (0) so a missing price never drags the
+  // normalisation range to zero (which would inflate every other property).
+  const validPrices = priceRaw.filter((v) => v > 0);
+  const priceBounds = validPrices.length
+    ? { min: Math.min(...validPrices), max: Math.max(...validPrices) }
+    : { min: 0, max: 0 };
   const b = {
-    price: bounds(priceRaw),
+    price: priceBounds,
     amen: bounds(amenRaw),
     loc: bounds(locRaw),
     build: bounds(buildRaw),
@@ -136,8 +142,12 @@ export function compareProperties(selected: Property[]): ComparisonResult {
   set.forEach((p, i) => {
     const factor: Record<ScoreFactorKey, number> = {
       // Lower price normalises higher (better value) — but amenities/location
-      // weighting keeps premium projects competitive overall.
-      price: normLow(priceRaw[i], b.price.min, b.price.max),
+      // weighting keeps premium projects competitive overall. An unknown price
+      // (0) scores neutral-low rather than "cheapest", so it can't win on price.
+      price:
+        priceRaw[i] > 0
+          ? normLow(priceRaw[i], b.price.min, b.price.max)
+          : SCORE_FLOOR,
       amenities: normHigh(amenRaw[i], b.amen.min, b.amen.max),
       location: normHigh(locRaw[i], b.loc.min, b.loc.max),
       builder: normHigh(buildRaw[i], b.build.min, b.build.max),
@@ -179,13 +189,17 @@ export function compareProperties(selected: Property[]): ComparisonResult {
     .sort((a, c) => scores[c.id].overall - scores[a.id].overall)
     .map((p) => p.id);
 
-  // Best Value: strongest overall score per crore spent.
-  const bestValueId = [...set]
-    .sort(
-      (a, c) =>
-        scores[c.id].overall / c.priceLakh - scores[a.id].overall / a.priceLakh,
-    )
-    .map((p) => p.id)[0];
+  // Best Value: strongest overall score per crore spent. Properties with an
+  // unknown price (0) are excluded — value-for-money is undefined without a
+  // price, and dividing by 0 would otherwise make them win automatically.
+  const priced = set.filter((p) => p.priceLakh > 0);
+  const bestValueId = priced.length
+    ? [...priced].sort(
+        (a, c) =>
+          scores[c.id].overall / c.priceLakh -
+          scores[a.id].overall / a.priceLakh,
+      )[0].id
+    : ranking[0];
 
   // Best Luxury: premium price + amenities + builder prestige.
   const luxuryScore = (p: Property) =>

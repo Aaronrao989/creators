@@ -10,6 +10,24 @@ export type SafeUser = UserRecord;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+const MIN_PASSWORD = 8;
+// Upper bound guards against very long inputs making scrypt a CPU DoS vector.
+const MAX_PASSWORD = 200;
+
+/** Shared password policy for signup and reset. Throws a 400 on failure. */
+function assertPasswordPolicy(password: string): void {
+  if (password.length < MIN_PASSWORD)
+    throw new AppError(
+      `Password must be at least ${MIN_PASSWORD} characters.`,
+      400,
+    );
+  if (password.length > MAX_PASSWORD)
+    throw new AppError(
+      `Password must be at most ${MAX_PASSWORD} characters.`,
+      400,
+    );
+}
+
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 
 export const authService = {
@@ -20,8 +38,7 @@ export const authService = {
       throw new AppError("Please fill in every field.", 400);
     }
     if (!EMAIL_RE.test(mail)) throw new AppError("Enter a valid email address.", 400);
-    if (password.length < 4)
-      throw new AppError("Password must be at least 4 characters.", 400);
+    assertPasswordPolicy(password);
 
     const existing = await userRepository.findByEmail(mail);
     if (existing)
@@ -90,8 +107,7 @@ export const authService = {
   /** Complete a reset: validate the token, set a new password, sign the user in. */
   async resetPassword(token: string, newPassword: string): Promise<SafeUser> {
     if (!token) throw new AppError("Invalid or expired reset link.", 400);
-    if (newPassword.length < 4)
-      throw new AppError("Password must be at least 4 characters.", 400);
+    assertPasswordPolicy(newPassword);
 
     const row = await userRepository.findByResetTokenHash(sha256(token));
     if (!row || !row.resetTokenExp || row.resetTokenExp.getTime() < Date.now()) {

@@ -373,13 +373,13 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
           <div className="mt-8 overflow-hidden rounded-2xl border border-accent/20 bg-accent/[0.06] p-5">
             <div className="grid items-center gap-5 lg:grid-cols-[auto_1fr]">
               <div className="relative flex items-center">
-                <span className="relative h-24 w-36 overflow-hidden rounded-xl">
+                <span className="relative h-20 w-28 overflow-hidden rounded-xl sm:h-24 sm:w-36">
                   <CoverImage src={initial[0]?.image} alt={initial[0]?.name ?? ""} gradient={initial[0]?.gradient} sizes="160px" />
                 </span>
                 <span className="z-10 -mx-3 flex h-10 w-10 items-center justify-center rounded-full border-4 border-card bg-primary text-[11px] font-extrabold text-primary-foreground">
                   V/S
                 </span>
-                <span className="relative h-24 w-36 overflow-hidden rounded-xl">
+                <span className="relative h-20 w-28 overflow-hidden rounded-xl sm:h-24 sm:w-36">
                   <CoverImage src={initial[1]?.image} alt={initial[1]?.name ?? ""} gradient={initial[1]?.gradient} sizes="160px" />
                 </span>
               </div>
@@ -542,7 +542,7 @@ const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
           <span className="text-xs font-medium text-muted-foreground">*</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          {p.configs} · {sqftRange(p)}
+          {[p.configs, sqftRange(p)].filter(Boolean).join(" · ")}
         </p>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg bg-muted/60 px-2.5 py-2 text-[11px] text-muted-foreground">
@@ -551,7 +551,7 @@ const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
           <span>· {p.towers} {p.towers === 1 ? "tower" : "towers"}</span>
         </div>
 
-        <div className="mt-3 grid grid-cols-[1fr_1fr_auto] gap-1.5">
+        <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-[1fr_1fr_auto]">
           <button
             onClick={handleShortlist}
             className={cn(
@@ -570,8 +570,8 @@ const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
           >
             <GitCompareArrows className="h-3 w-3" /> {inCompare ? "Added" : "Compare"}
           </button>
-          <Link href={`/properties/${p.id}`}>
-            <Button variant="accent" size="sm" className="h-full px-3 text-[11px]">
+          <Link href={`/properties/${p.id}`} className="col-span-2 sm:col-span-1">
+            <Button variant="accent" size="sm" className="h-full w-full px-3 text-[11px]">
               View Details
             </Button>
           </Link>
@@ -583,6 +583,7 @@ const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
 ListingCard.displayName = "ListingCard";
 
 function sqftRange(p: Property): string {
-  const a = p.floorPlans.map((f) => f.areaSqFt);
+  const a = p.floorPlans.map((f) => f.areaSqFt).filter((n) => n > 0);
+  if (a.length === 0) return ""; // no floor-plan areas in the source sheet
   return `${Math.min(...a).toLocaleString("en-IN")} - ${Math.max(...a).toLocaleString("en-IN")} sq.ft`;
 }

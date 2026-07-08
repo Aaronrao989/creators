@@ -4,27 +4,30 @@ import {
   createSavedComparisonSchema,
   deleteSavedComparisonSchema,
 } from "@/lib/validation/schemas";
+import { getSessionUserId } from "@/lib/auth/session";
 import { UnauthorizedError } from "@/lib/errors";
 import { handleError, json, parseJsonBody } from "@/lib/api/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** GET /api/saved-comparisons?userId=<uuid> — a user's saved comparisons. */
-export async function GET(req: NextRequest) {
+/** GET /api/saved-comparisons — the signed-in user's saved comparisons. */
+export async function GET() {
   try {
-    const userId = req.nextUrl.searchParams.get("userId");
-    if (!userId) throw new UnauthorizedError("userId is required");
+    const userId = getSessionUserId();
+    if (!userId) throw new UnauthorizedError("Please sign in.");
     return json(await savedComparisonService.listForUser(userId));
   } catch (err) {
     return handleError(err);
   }
 }
 
-/** POST /api/saved-comparisons — { userId, propertyIds[], name? }. */
+/** POST /api/saved-comparisons — { propertyIds[], name? } for the current user. */
 export async function POST(req: NextRequest) {
   try {
-    const { userId, propertyIds, name } = createSavedComparisonSchema.parse(
+    const userId = getSessionUserId();
+    if (!userId) throw new UnauthorizedError("Please sign in.");
+    const { propertyIds, name } = createSavedComparisonSchema.parse(
       await parseJsonBody(req),
     );
     const saved = await savedComparisonService.create(userId, propertyIds, name);
@@ -34,12 +37,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** DELETE /api/saved-comparisons — { id, userId } (owner-scoped). */
+/** DELETE /api/saved-comparisons — { id } (owner-scoped to the current user). */
 export async function DELETE(req: NextRequest) {
   try {
-    const { id, userId } = deleteSavedComparisonSchema.parse(
-      await parseJsonBody(req),
-    );
+    const userId = getSessionUserId();
+    if (!userId) throw new UnauthorizedError("Please sign in.");
+    const { id } = deleteSavedComparisonSchema.parse(await parseJsonBody(req));
     await savedComparisonService.delete(id, userId);
     return json({ id, deleted: true });
   } catch (err) {

@@ -8,11 +8,13 @@ export function cn(...inputs: ClassValue[]) {
 
 /** Format an INR price given in lakhs as a readable label. */
 export function formatPriceLakh(lakh: number): string {
+  // Missing/unknown price (source sheet had none): don't show a misleading ₹0.
+  if (!(lakh > 0)) return "Price on request";
   if (lakh >= 100) {
     const cr = lakh / 100;
     return `₹${cr % 1 === 0 ? cr.toFixed(0) : cr.toFixed(2)} Cr`;
   }
-  return `₹${lakh} Lakh`;
+  return `₹${lakh % 1 === 0 ? lakh.toFixed(0) : lakh.toFixed(2)} Lakh`;
 }
 
 export function formatINR(value: number): string {

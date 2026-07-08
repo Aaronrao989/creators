@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   Building2,
   Check,
-  ChevronDown,
   ClipboardList,
   Download,
   Dumbbell,
@@ -24,7 +23,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import type { AmenityKey, Property } from "@/lib/types";
+import type { AmenityKey, ComparisonResult, Property } from "@/lib/types";
 import { compareProperties, scoreTier } from "@/lib/scoring";
 import { useComparison } from "@/store/comparison";
 import { useAuth, selectShortlistIds } from "@/store/auth";
@@ -58,12 +57,19 @@ const AMENITIES: { key: AmenityKey; label: string }[] = [
 export function ComparisonView({
   properties,
   similar = [],
+  result: providedResult,
 }: {
   properties: Property[];
   similar?: Property[];
+  /** Server-computed scoring result. When present it is reused as-is; the
+   *  client only recomputes as a fallback (e.g. if rendered without it). */
+  result?: ComparisonResult;
 }) {
   const n = properties.length;
-  const result = React.useMemo(() => compareProperties(properties), [properties]);
+  const result = React.useMemo(
+    () => providedResult ?? compareProperties(properties),
+    [providedResult, properties],
+  );
   const remove = useComparison((s) => s.remove);
   const router = useRouter();
   const pathname = usePathname();
@@ -80,7 +86,16 @@ export function ComparisonView({
     toggleShortlist(id);
   };
 
-  const valueCols = { gridTemplateColumns: `repeat(${n}, minmax(0,1fr))` };
+  // Responsive comparison columns. Columns fill the row on desktop and for a
+  // 2-up compare (so 2-up fits any phone with no scroll). For 3–4 properties on
+  // narrow screens a min-width kicks in so columns stay readable and the section
+  // scrolls horizontally instead of crushing. Desktop is unaffected (the row is
+  // always wider than the min-width there).
+  const COL_MIN = 172; // px per property column once horizontal scroll engages
+  const valueCols: React.CSSProperties = {
+    gridTemplateColumns: `repeat(${n}, minmax(0,1fr))`,
+    minWidth: n > 2 ? `${n * COL_MIN}px` : undefined,
+  };
 
   // Per-property selected floor-plan (click a config to switch the preview).
   const [planIdx, setPlanIdx] = React.useState<Record<string, number>>({});
@@ -119,7 +134,7 @@ export function ComparisonView({
         </div>
       </div>
 
-      <div className="container grid gap-8 py-6 lg:grid-cols-[248px_1fr] lg:px-10">
+      <div className="container grid grid-cols-1 gap-8 py-6 lg:grid-cols-[248px_1fr] lg:px-10">
         {/* ───────────── LEFT SIDEBAR ───────────── */}
         <aside className="hidden h-fit flex-col gap-4 lg:sticky lg:top-20 lg:flex">
           {/* Compare list */}
@@ -206,8 +221,9 @@ export function ComparisonView({
         </aside>
 
         {/* ───────────── RIGHT CONTENT ───────────── */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* Property header cards with V/S */}
+          <div className="overflow-x-auto">
           <div className="relative grid gap-4" style={valueCols}>
             {properties.map((p) => {
               const isTop = result.ranking[0] === p.id;
@@ -234,7 +250,7 @@ export function ComparisonView({
                     <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                       <MapPin className="h-3.5 w-3.5 text-accent" /> {p.locality}
                     </p>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
+                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <button
                         onClick={() => handleShortlist(p.id)}
                         className={cn(
@@ -249,7 +265,7 @@ export function ComparisonView({
                         />
                         Shortlist
                       </button>
-                      <a href="tel:+919252996677">
+                      <a href="tel:+919252996677" className="block">
                         <Button variant="accent" size="sm" className="w-full">
                           View Details
                         </Button>
@@ -266,6 +282,7 @@ export function ComparisonView({
                 V/S
               </div>
             )}
+          </div>
           </div>
 
           {/* Quick Overview */}
@@ -285,7 +302,6 @@ export function ComparisonView({
                 ]}
               />
             </div>
-            <MoreLink label="View More Details" />
           </Card>
 
           {/* Price & Configuration */}
@@ -305,33 +321,39 @@ export function ComparisonView({
                 },
               ]}
             />
-            <MoreLink label="View Full Price Breakup" />
           </SectionCard>
 
           {/* Amenities */}
           <SectionCard id="amenities" icon={Dumbbell} title="Amenities">
-            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
-              {AMENITIES.map((a) => (
-                <div key={a.key} className="grid items-center gap-2 px-4 py-2.5" style={{ gridTemplateColumns: `1fr repeat(${n}, 64px)` }}>
-                  <span className="text-sm font-medium text-foreground">{a.label}</span>
-                  {properties.map((p) => (
-                    <span key={p.id} className="flex justify-center">
-                      {p.amenities[a.key] ? (
-                        <Check className="h-5 w-5 rounded-full bg-success/15 p-0.5 text-success" />
-                      ) : (
-                        <X className="h-5 w-5 rounded-full bg-danger/15 p-0.5 text-danger/70" />
-                      )}
-                    </span>
-                  ))}
-                </div>
-              ))}
+            {/* Scrolls horizontally for 3–4 properties; the amenity label column
+                stays pinned (sticky) so rows are always identifiable. */}
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <div
+                className="divide-y divide-border"
+                style={{ minWidth: n > 2 ? `${144 + n * 64}px` : undefined }}
+              >
+                {AMENITIES.map((a) => (
+                  <div key={a.key} className="grid items-center py-2.5" style={{ gridTemplateColumns: `minmax(130px,1fr) repeat(${n}, 64px)` }}>
+                    <span className="sticky left-0 z-[1] bg-card px-4 text-sm font-medium text-foreground">{a.label}</span>
+                    {properties.map((p) => (
+                      <span key={p.id} className="flex justify-center">
+                        {p.amenities[a.key] ? (
+                          <Check className="h-5 w-5 rounded-full bg-success/15 p-0.5 text-success" />
+                        ) : (
+                          <X className="h-5 w-5 rounded-full bg-danger/15 p-0.5 text-danger/70" />
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
-            <MoreLink label="View All Amenities" />
           </SectionCard>
 
           {/* Location & Connectivity */}
           <SectionCard id="location" icon={MapPin} title="Location & Connectivity">
             <p className="mb-3 text-sm font-bold text-foreground">Connectivity</p>
+            <div className="overflow-x-auto">
             <div className="grid gap-4" style={valueCols}>
               {properties.map((p) => (
                 <div key={p.id} className="space-y-3">
@@ -352,6 +374,7 @@ export function ComparisonView({
                 </div>
               ))}
             </div>
+            </div>
           </SectionCard>
 
           {/* Floor Plans */}
@@ -359,6 +382,7 @@ export function ComparisonView({
             {/* Two grid rows — all config chips share one row (so wrapping to
                 multiple lines doesn't push one card down) and all cards share the
                 next row, keeping the floor-plan cards aligned across columns. */}
+            <div className="overflow-x-auto">
             <div className="grid gap-x-4 gap-y-2" style={valueCols}>
               {properties.map((p) => (
                 <div key={`chips-${p.id}`} className="flex flex-col gap-1">
@@ -413,10 +437,12 @@ export function ComparisonView({
                 );
               })}
             </div>
+            </div>
           </SectionCard>
 
           {/* Best For */}
           <SectionCard id="bestfor" icon={Users} title="Best For">
+            <div className="overflow-x-auto">
             <div className="grid gap-4" style={valueCols}>
               {properties.map((p) => {
                 const persona = bestForPersona(p, result.scores[p.id].bestFor);
@@ -445,6 +471,7 @@ export function ComparisonView({
                 );
               })}
             </div>
+            </div>
           </SectionCard>
 
           {/* Similar Properties */}
@@ -465,7 +492,7 @@ export function ComparisonView({
                     <div className="mb-2 flex items-center gap-1 truncate text-[11px] text-muted-foreground">
                       <MapPin className="h-3 w-3 text-accent" /> {p.locality}
                     </div>
-                    <Link href="/properties">
+                    <Link href={`/properties/${p.id}`}>
                       <Button variant="subtle" size="sm" className="w-full">
                         View
                       </Button>
@@ -532,7 +559,7 @@ function SectionCard({
 }) {
   return (
     <section id={id} className="scroll-mt-20 rounded-2xl border border-border bg-card p-5 shadow-glass">
-      <div className="grid gap-5 md:grid-cols-[160px_1fr]">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-[160px_1fr]">
         <div className="flex items-start gap-2.5">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10">
             <Icon className="h-5 w-5 text-accent" />
@@ -541,7 +568,7 @@ function SectionCard({
             {title}
           </h2>
         </div>
-        <div>{children}</div>
+        <div className="min-w-0">{children}</div>
       </div>
     </section>
   );
@@ -555,10 +582,7 @@ type OverviewItem = { label: string; values: string[]; subs?: string[] };
 function OverviewTable({ rows, n }: { rows: OverviewItem[]; n: number }) {
   if (n === 2) {
     return (
-      <div
-        className="relative grid overflow-hidden rounded-xl border border-border"
-        style={{ gridTemplateColumns: "1fr minmax(150px, auto) 1fr" }}
-      >
+      <div className="relative grid grid-cols-[1fr_minmax(84px,auto)_1fr] overflow-hidden rounded-xl border border-border md:grid-cols-[1fr_minmax(150px,auto)_1fr]">
         {/* one continuous purple band behind the centre labels */}
         <div
           className="rounded-xl"
@@ -572,12 +596,12 @@ function OverviewTable({ rows, n }: { rows: OverviewItem[]; n: number }) {
           <React.Fragment key={r.label}>
             <div
               className={cn(
-                "flex flex-col items-center justify-center px-4 py-3.5 text-center",
+                "flex min-w-0 flex-col items-center justify-center px-3 py-3.5 text-center",
                 i > 0 && "border-t border-border",
               )}
               style={{ gridColumn: 1, gridRow: i + 1 }}
             >
-              <span className="text-sm font-bold text-foreground">{r.values[0]}</span>
+              <span className="break-words text-sm font-bold text-foreground">{r.values[0]}</span>
               {r.subs?.[0] && (
                 <span className="text-[11px] text-muted-foreground">{r.subs[0]}</span>
               )}
@@ -595,12 +619,12 @@ function OverviewTable({ rows, n }: { rows: OverviewItem[]; n: number }) {
             </div>
             <div
               className={cn(
-                "flex flex-col items-center justify-center px-4 py-3.5 text-center",
+                "flex min-w-0 flex-col items-center justify-center px-3 py-3.5 text-center",
                 i > 0 && "border-t border-border",
               )}
               style={{ gridColumn: 3, gridRow: i + 1 }}
             >
-              <span className="text-sm font-bold text-foreground">{r.values[1]}</span>
+              <span className="break-words text-sm font-bold text-foreground">{r.values[1]}</span>
               {r.subs?.[1] && (
                 <span className="text-[11px] text-muted-foreground">{r.subs[1]}</span>
               )}
@@ -611,37 +635,35 @@ function OverviewTable({ rows, n }: { rows: OverviewItem[]; n: number }) {
     );
   }
 
-  // 3–4 columns: label on the left, values across.
+  // 3–4 columns: label on the left, values across. Scrolls horizontally on
+  // narrow screens with the label column pinned (sticky) so rows stay readable.
   return (
-    <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
-      {rows.map((r) => (
-        <div
-          key={r.label}
-          className="grid items-center gap-2 px-4 py-2.5"
-          style={{ gridTemplateColumns: `140px repeat(${n}, 1fr)` }}
-        >
-          <span className="text-xs font-bold uppercase tracking-wide text-accent">
-            {r.label}
-          </span>
-          {r.values.map((v, i) => (
-            <div key={i} className="text-center">
-              <div className="text-sm font-bold text-foreground">{v}</div>
-              {r.subs?.[i] && (
-                <div className="text-[11px] text-muted-foreground">{r.subs[i]}</div>
-              )}
-            </div>
-          ))}
-        </div>
-      ))}
+    <div className="overflow-x-auto rounded-xl border border-border">
+      <div
+        className="divide-y divide-border"
+        style={{ minWidth: n > 2 ? `${132 + n * 96}px` : undefined }}
+      >
+        {rows.map((r) => (
+          <div
+            key={r.label}
+            className="grid items-center gap-2 py-2.5"
+            style={{ gridTemplateColumns: `132px repeat(${n}, 1fr)` }}
+          >
+            <span className="sticky left-0 z-[1] bg-card px-4 text-xs font-bold uppercase tracking-wide text-accent">
+              {r.label}
+            </span>
+            {r.values.map((v, i) => (
+              <div key={i} className="px-1 text-center">
+                <div className="break-words text-sm font-bold text-foreground">{v}</div>
+                {r.subs?.[i] && (
+                  <div className="text-[11px] text-muted-foreground">{r.subs[i]}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
-  );
-}
-
-function MoreLink({ label }: { label: string }) {
-  return (
-    <button className="mt-3 flex w-full items-center justify-center gap-1 text-xs font-semibold text-accent hover:underline">
-      {label} <ChevronDown className="h-3.5 w-3.5" />
-    </button>
   );
 }
 
@@ -680,7 +702,8 @@ function RatingRing({ rating, color }: { rating: number; color: string }) {
 /* ---- data → display mappers (no change to underlying data) -------------- */
 
 function sqftRange(p: Property): string {
-  const areas = p.floorPlans.map((f) => f.areaSqFt);
+  const areas = p.floorPlans.map((f) => f.areaSqFt).filter((n) => n > 0);
+  if (areas.length === 0) return "—"; // no floor-plan areas in the source sheet
   return `${Math.min(...areas).toLocaleString("en-IN")} – ${Math.max(...areas).toLocaleString("en-IN")} sq.ft`;
 }
 

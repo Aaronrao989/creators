@@ -146,7 +146,7 @@ export default function ShortlistPage() {
                     <GitCompareArrows className="h-3.5 w-3.5" />
                     {inCompare.includes(p.id) ? "Added" : "Compare"}
                   </button>
-                  <Link href="/properties">
+                  <Link href={`/properties/${p.id}`}>
                     <Button variant="accent" size="sm" className="w-full">
                       View
                     </Button>

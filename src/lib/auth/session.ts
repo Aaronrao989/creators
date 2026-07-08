@@ -9,10 +9,33 @@ import { cookies } from "next/headers";
  */
 const COOKIE = "ca_session";
 const MAX_AGE = 60 * 60 * 24 * 30; // 30 days (seconds)
-const SECRET = process.env.AUTH_SECRET || "dev-insecure-secret-change-me";
+
+const DEV_FALLBACK_SECRET = "dev-insecure-secret-change-me";
+// Placeholder shipped in .env.example — treat it as "unset" so it can never
+// silently become a real production signing key.
+const PLACEHOLDER_SECRET = "change-me-to-a-long-random-string";
+
+/**
+ * Resolve the signing secret lazily (at request time, not import time, so a
+ * missing secret never breaks the build). In production we refuse to fall back
+ * to an insecure/known default — a forgeable secret means forgeable sessions.
+ */
+function getSecret(): string {
+  const secret = process.env.AUTH_SECRET?.trim();
+  const usable = secret && secret !== PLACEHOLDER_SECRET ? secret : null;
+  if (usable) return usable;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "AUTH_SECRET is not set to a secure value. Refusing to sign or verify " +
+        "sessions with an insecure default in production. Generate one with " +
+        "`openssl rand -base64 32`.",
+    );
+  }
+  return DEV_FALLBACK_SECRET;
+}
 
 function sign(payload: string): string {
-  return createHmac("sha256", SECRET).update(payload).digest("base64url");
+  return createHmac("sha256", getSecret()).update(payload).digest("base64url");
 }
 
 function createToken(userId: string): string {

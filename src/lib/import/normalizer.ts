@@ -97,5 +97,12 @@ export async function upsertProject(
 
     await tx.property.create({ data: { slug: p.slug, ...scalars, ...children } });
     return "created";
+  }, {
+    // Neon (serverless) autosuspends and fronts connections with PgBouncer, so a
+    // cold start can blow past Prisma's default 2s window to *acquire* a
+    // connection and begin the transaction. Widen the budget for this one-off
+    // import job (no effect on live app requests).
+    maxWait: 20000, // wait up to 20s to start the transaction (absorbs cold start)
+    timeout: 30000, // allow up to 30s once started (default 5s) — harmless headroom
   });
 }

@@ -7,7 +7,7 @@ import { MIN_COMPARE, useComparison } from "@/store/comparison";
 import { ComparisonView } from "@/components/comparison/comparison-view";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api/client";
-import type { Property } from "@/lib/types";
+import type { ComparisonResult, Property } from "@/lib/types";
 
 export function CompareClient() {
   const selected = useComparison((s) => s.selected);
@@ -15,6 +15,7 @@ export function CompareClient() {
   const [loading, setLoading] = React.useState(true);
   const [properties, setProperties] = React.useState<Property[]>([]);
   const [similar, setSimilar] = React.useState<Property[]>([]);
+  const [result, setResult] = React.useState<ComparisonResult | null>(null);
 
   // Selection lives in localStorage (zustand persist) — wait for hydration.
   React.useEffect(() => setHydrated(true), []);
@@ -25,6 +26,7 @@ export function CompareClient() {
     if (selected.length < MIN_COMPARE) {
       setProperties([]);
       setSimilar([]);
+      setResult(null);
       setLoading(false);
       return;
     }
@@ -36,11 +38,14 @@ export function CompareClient() {
         if (cancelled) return;
         setProperties(payload.properties);
         setSimilar(payload.similar);
+        // Reuse the server's scoring result — don't recompute on the client.
+        setResult(payload.result);
       })
       .catch(() => {
         if (cancelled) return;
         setProperties([]);
         setSimilar([]);
+        setResult(null);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -81,5 +86,11 @@ export function CompareClient() {
     );
   }
 
-  return <ComparisonView properties={properties} similar={similar} />;
+  return (
+    <ComparisonView
+      properties={properties}
+      similar={similar}
+      result={result ?? undefined}
+    />
+  );
 }
