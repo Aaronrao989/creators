@@ -85,7 +85,10 @@ function ResetForm() {
           </label>
 
           {error && (
-            <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+            <p
+              role="alert"
+              className="rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger"
+            >
               {error}
             </p>
           )}

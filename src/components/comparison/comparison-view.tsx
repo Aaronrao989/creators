@@ -31,6 +31,7 @@ import { useMounted } from "@/lib/use-mounted";
 import { LocationMap } from "@/components/comparison/location-map";
 import { Button } from "@/components/ui/button";
 import { CoverImage } from "@/components/ui/cover-image";
+import { Lightbox } from "@/components/ui/lightbox";
 import { cn, formatPriceLakh } from "@/lib/utils";
 
 const NAV = [
@@ -104,6 +105,10 @@ export function ComparisonView({
 
   return (
     <div className="bg-muted/30">
+      {/* Page heading for a11y/SEO; the visible design leads with the top bar. */}
+      <h1 className="sr-only">
+        Compare {properties.map((p) => p.name).join(" vs ")}
+      </h1>
       {/* Top bar */}
       <div className="border-b border-border bg-card">
         <div className="container flex h-14 items-center justify-between lg:px-10">
@@ -506,24 +511,7 @@ export function ComparisonView({
       </div>
 
       {/* Floor-plan lightbox */}
-      {zoom && (
-        <div
-          onClick={() => setZoom(null)}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-        >
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={() => setZoom(null)}
-            className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <div className="relative h-[88vh] w-[94vw]" onClick={(e) => e.stopPropagation()}>
-            <Image src={zoom} alt="Floor plan" fill unoptimized className="object-contain" sizes="94vw" />
-          </div>
-        </div>
-      )}
+      {zoom && <Lightbox src={zoom} onClose={() => setZoom(null)} />}
     </div>
   );
 }

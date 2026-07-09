@@ -31,3 +31,11 @@ export const POSSESSIONS: Possession[] = [
 /** Comparison selection limits (shared by UI store and backend services). */
 export const MIN_COMPARE = 2;
 export const MAX_COMPARE = 4;
+
+/**
+ * Absolute site origin, used server-side for SEO (metadataBase, canonical URLs,
+ * sitemap, robots). Override with APP_URL in production; falls back to the
+ * public domain. Only read on the server — safe as a plain constant.
+ */
+export const SITE_URL =
+  process.env.APP_URL?.replace(/\/$/, "") || "https://www.creatorshome.in";

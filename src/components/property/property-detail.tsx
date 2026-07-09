@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -19,7 +18,6 @@ import {
   Star,
   Train,
   Waves,
-  X,
 } from "lucide-react";
 import type { AmenityKey, Property } from "@/lib/types";
 import { useComparison } from "@/store/comparison";
@@ -27,6 +25,7 @@ import { useAuth } from "@/store/auth";
 import { useMounted } from "@/lib/use-mounted";
 import { Button } from "@/components/ui/button";
 import { CoverImage } from "@/components/ui/cover-image";
+import { Lightbox } from "@/components/ui/lightbox";
 import { cn, formatPriceLakh } from "@/lib/utils";
 
 const EXPERT_PHONE = "+919252996677";
@@ -421,24 +420,7 @@ export function PropertyDetail({
       </div>
 
       {/* Floor-plan lightbox */}
-      {zoom && (
-        <div
-          onClick={() => setZoom(null)}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-        >
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={() => setZoom(null)}
-            className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <div className="relative h-[88vh] w-[94vw]" onClick={(e) => e.stopPropagation()}>
-            <Image src={zoom} alt="Floor plan" fill unoptimized className="object-contain" sizes="94vw" />
-          </div>
-        </div>
-      )}
+      {zoom && <Lightbox src={zoom} onClose={() => setZoom(null)} />}
     </div>
   );
 }

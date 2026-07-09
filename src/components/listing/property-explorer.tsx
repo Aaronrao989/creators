@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Tag,
+  X,
 } from "lucide-react";
 import type { AmenityKey, City, Possession, Property } from "@/lib/types";
 import { CITIES, POSSESSIONS } from "@/lib/constants";
@@ -133,11 +134,187 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
 
   const count = (fn: (p: Property) => boolean) => initial.filter(fn).length;
 
+  // Mobile/tablet filter drawer (desktop keeps the permanent sidebar).
+  const [filtersOpen, setFiltersOpen] = React.useState(false);
+  const drawerRef = React.useRef<HTMLDivElement>(null);
+  const activeFilterCount =
+    locations.size +
+    builders.size +
+    bhks.size +
+    possessions.size +
+    amenities.size +
+    (budgetIdx != null ? 1 : 0) +
+    (areaIdx != null ? 1 : 0) +
+    (locQuery ? 1 : 0);
+
+  // Drawer a11y: focus into the panel, trap Tab, ESC to close, lock body
+  // scroll (which preserves the page scroll position), restore focus on close.
+  React.useEffect(() => {
+    if (!filtersOpen) return;
+    const panel = drawerRef.current;
+    if (!panel) return;
+    const prevActive = document.activeElement as HTMLElement | null;
+    const getFocusable = () =>
+      Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null);
+    getFocusable()[0]?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setFiltersOpen(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const f = getFocusable();
+      if (f.length === 0) return;
+      const first = f[0];
+      const last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+      prevActive?.focus?.();
+    };
+  }, [filtersOpen]);
+
+  // The filter controls, rendered in BOTH the desktop sidebar and the mobile
+  // drawer — a single definition bound to the state above (no duplicated logic).
+  const filterGroups = (
+    <>
+      <FilterGroup title="Location">
+        <div className="relative mb-2">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={locQuery}
+            onChange={(e) => setLocQuery(e.target.value)}
+            placeholder="Search location"
+            className="h-9 w-full rounded-lg border border-border bg-background pl-8 pr-2 text-xs outline-none ring-accent/40 focus:ring-2"
+          />
+        </div>
+        {CITIES.map((c) => (
+          <CheckRow
+            key={c}
+            label={c}
+            count={count((p) => p.city === c)}
+            checked={locations.has(c)}
+            onChange={() => setLocations((s) => toggle(s, c))}
+          />
+        ))}
+      </FilterGroup>
+
+      <FilterGroup title="Brand">
+        {builderNames.map((b) => (
+          <CheckRow
+            key={b}
+            label={b}
+            count={count((p) => p.builder.name === b)}
+            checked={builders.has(b)}
+            onChange={() => setBuilders((s) => toggle(s, b))}
+          />
+        ))}
+      </FilterGroup>
+
+      <FilterGroup title="Budget">
+        <div className="mb-2 mt-1">
+          <div className="h-1.5 rounded-full bg-gradient-to-r from-accent to-primary/40" />
+          <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
+            <span>₹10 L</span>
+            <span>₹10 Cr+</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {BUDGETS.map((b, i) => (
+            <button
+              key={b.label}
+              onClick={() => setBudgetIdx(budgetIdx === i ? null : i)}
+              className={cn(
+                "rounded-lg border px-2 py-1.5 text-xs font-semibold transition-colors",
+                budgetIdx === i
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-border text-foreground hover:border-accent/50",
+              )}
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
+      </FilterGroup>
+
+      <FilterGroup title="Area (sq.ft)">
+        <div className="grid grid-cols-2 gap-2">
+          {AREAS.map((a, i) => (
+            <button
+              key={a.label}
+              onClick={() => setAreaIdx(areaIdx === i ? null : i)}
+              className={cn(
+                "rounded-lg border px-2 py-1.5 text-xs font-semibold transition-colors",
+                areaIdx === i
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-border text-foreground hover:border-accent/50",
+              )}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+      </FilterGroup>
+
+      <FilterGroup title="BHK Configuration">
+        {BHK_OPTS.map((b) => (
+          <CheckRow
+            key={b}
+            label={`${b} BHK`}
+            count={count((p) => bhkNums(p).includes(b))}
+            checked={bhks.has(b)}
+            onChange={() => setBhks((s) => toggle(s, b))}
+          />
+        ))}
+      </FilterGroup>
+
+      <FilterGroup title="Possession Status">
+        {POSSESSIONS.map((ps) => (
+          <CheckRow
+            key={ps}
+            label={ps}
+            count={count((p) => p.possession === ps)}
+            checked={possessions.has(ps)}
+            onChange={() => setPossessions((s) => toggle(s, ps))}
+          />
+        ))}
+      </FilterGroup>
+
+      <FilterGroup title="Amenities" last>
+        {AMENITY_OPTS.map((a) => (
+          <CheckRow
+            key={a.key}
+            label={a.label}
+            count={count((p) => p.amenities[a.key])}
+            checked={amenities.has(a.key)}
+            onChange={() => setAmenities((s) => toggle(s, a.key))}
+          />
+        ))}
+      </FilterGroup>
+    </>
+  );
+
   return (
     <section id="explore" className="container scroll-mt-20 py-10">
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-        {/* ───────────── FILTER SIDEBAR (sticky) ───────────── */}
-        <aside className="h-fit lg:sticky lg:top-20">
+        {/* ───────────── FILTER SIDEBAR (sticky, desktop ≥1024px only) ───────────── */}
+        <aside className="hidden h-fit lg:sticky lg:top-20 lg:block">
           <div className="rounded-2xl border border-border bg-card p-5 shadow-glass lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
               <span className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-primary dark:text-foreground">
@@ -147,120 +324,7 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
                 Clear all
               </button>
             </div>
-
-            <FilterGroup title="Location">
-              <div className="relative mb-2">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={locQuery}
-                  onChange={(e) => setLocQuery(e.target.value)}
-                  placeholder="Search location"
-                  className="h-9 w-full rounded-lg border border-border bg-background pl-8 pr-2 text-xs outline-none ring-accent/40 focus:ring-2"
-                />
-              </div>
-              {CITIES.map((c) => (
-                <CheckRow
-                  key={c}
-                  label={c}
-                  count={count((p) => p.city === c)}
-                  checked={locations.has(c)}
-                  onChange={() => setLocations((s) => toggle(s, c))}
-                />
-              ))}
-            </FilterGroup>
-
-            <FilterGroup title="Brand">
-              {builderNames.map((b) => (
-                <CheckRow
-                  key={b}
-                  label={b}
-                  count={count((p) => p.builder.name === b)}
-                  checked={builders.has(b)}
-                  onChange={() => setBuilders((s) => toggle(s, b))}
-                />
-              ))}
-            </FilterGroup>
-
-            <FilterGroup title="Budget">
-              <div className="mb-2 mt-1">
-                <div className="h-1.5 rounded-full bg-gradient-to-r from-accent to-primary/40" />
-                <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
-                  <span>₹10 L</span>
-                  <span>₹10 Cr+</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {BUDGETS.map((b, i) => (
-                  <button
-                    key={b.label}
-                    onClick={() => setBudgetIdx(budgetIdx === i ? null : i)}
-                    className={cn(
-                      "rounded-lg border px-2 py-1.5 text-xs font-semibold transition-colors",
-                      budgetIdx === i
-                        ? "border-accent bg-accent/10 text-accent"
-                        : "border-border text-foreground hover:border-accent/50",
-                    )}
-                  >
-                    {b.label}
-                  </button>
-                ))}
-              </div>
-            </FilterGroup>
-
-            <FilterGroup title="Area (sq.ft)">
-              <div className="grid grid-cols-2 gap-2">
-                {AREAS.map((a, i) => (
-                  <button
-                    key={a.label}
-                    onClick={() => setAreaIdx(areaIdx === i ? null : i)}
-                    className={cn(
-                      "rounded-lg border px-2 py-1.5 text-xs font-semibold transition-colors",
-                      areaIdx === i
-                        ? "border-accent bg-accent/10 text-accent"
-                        : "border-border text-foreground hover:border-accent/50",
-                    )}
-                  >
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-            </FilterGroup>
-
-            <FilterGroup title="BHK Configuration">
-              {BHK_OPTS.map((b) => (
-                <CheckRow
-                  key={b}
-                  label={`${b} BHK`}
-                  count={count((p) => bhkNums(p).includes(b))}
-                  checked={bhks.has(b)}
-                  onChange={() => setBhks((s) => toggle(s, b))}
-                />
-              ))}
-            </FilterGroup>
-
-            <FilterGroup title="Possession Status">
-              {POSSESSIONS.map((ps) => (
-                <CheckRow
-                  key={ps}
-                  label={ps}
-                  count={count((p) => p.possession === ps)}
-                  checked={possessions.has(ps)}
-                  onChange={() => setPossessions((s) => toggle(s, ps))}
-                />
-              ))}
-            </FilterGroup>
-
-            <FilterGroup title="Amenities" last>
-              {AMENITY_OPTS.map((a) => (
-                <CheckRow
-                  key={a.key}
-                  label={a.label}
-                  count={count((p) => p.amenities[a.key])}
-                  checked={amenities.has(a.key)}
-                  onChange={() => setAmenities((s) => toggle(s, a.key))}
-                />
-              ))}
-            </FilterGroup>
+            {filterGroups}
           </div>
         </aside>
 
@@ -284,17 +348,36 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
                 </button>
               ))}
             </div>
-            <div className="relative">
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                className="h-10 rounded-xl border border-border bg-card pl-3 pr-8 text-sm font-medium outline-none ring-accent/40 focus:ring-2"
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              {/* Mobile/tablet: opens the filter drawer (sidebar is hidden < lg). */}
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(true)}
+                aria-haspopup="dialog"
+                aria-expanded={filtersOpen}
+                aria-controls="filter-drawer"
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
               >
-                <option value="recommended">Sort by: Recommended</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="rating">Builder rating</option>
-              </select>
+                <SlidersHorizontal className="h-4 w-4 text-accent" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-bold text-accent-foreground">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+              <div className="relative">
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  className="h-10 rounded-xl border border-border bg-card pl-3 pr-8 text-sm font-medium outline-none ring-accent/40 focus:ring-2"
+                >
+                  <option value="recommended">Sort by: Recommended</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                  <option value="rating">Builder rating</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -428,6 +511,62 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
         </div>
       </div>
 
+      {/* ───────────── FILTER DRAWER (tablet + mobile, < lg) ───────────── */}
+      <div
+        className={cn(
+          "fixed inset-0 z-[70] overflow-hidden lg:hidden",
+          filtersOpen ? "" : "pointer-events-none",
+        )}
+        aria-hidden={!filtersOpen}
+      >
+        <div
+          onClick={() => setFiltersOpen(false)}
+          className={cn(
+            "absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300",
+            filtersOpen ? "opacity-100" : "opacity-0",
+          )}
+        />
+        <div
+          ref={drawerRef}
+          id="filter-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Filter properties"
+          className={cn(
+            "absolute left-0 top-0 flex h-full w-[86%] max-w-sm flex-col border-r border-border bg-card shadow-lift transition-transform duration-300 will-change-transform",
+            filtersOpen ? "translate-x-0" : "-translate-x-full",
+          )}
+        >
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <span className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-primary dark:text-foreground">
+              <SlidersHorizontal className="h-4 w-4 text-accent" /> Filters
+            </span>
+            <button
+              type="button"
+              aria-label="Close filters"
+              onClick={() => setFiltersOpen(false)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Content mounts only while open; reuses the same filter controls. */}
+          <div className="flex-1 overflow-y-auto px-5 py-1">
+            {filtersOpen && filterGroups}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 border-t border-border p-4">
+            <Button variant="outline" size="md" onClick={clearAll}>
+              Clear all
+            </Button>
+            <Button variant="accent" size="md" onClick={() => setFiltersOpen(false)}>
+              Show {filtered.length} {filtered.length === 1 ? "result" : "results"}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <CompareBar />
       <div className="h-24" />
     </section>
@@ -474,15 +613,16 @@ function CheckRow({
   return (
     <label className="flex cursor-pointer items-center justify-between gap-2 py-0.5 text-sm">
       <span className="flex items-center gap-2">
+        {/* Input first so the visible box can show a `peer` focus ring. */}
+        <input type="checkbox" checked={checked} onChange={onChange} className="peer sr-only" />
         <span
           className={cn(
-            "flex h-4 w-4 items-center justify-center rounded border transition-colors",
+            "flex h-4 w-4 items-center justify-center rounded border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
             checked ? "border-accent bg-accent text-accent-foreground" : "border-border",
           )}
         >
           {checked && <span className="h-2 w-2 rounded-[2px] bg-current" />}
         </span>
-        <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
         <span className="text-foreground">{label}</span>
       </span>
       <span className="text-xs text-muted-foreground">{count}</span>
