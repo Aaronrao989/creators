@@ -1,52 +1,52 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 /**
- * Creators Arena wordmark — inline SVG so it inherits `currentColor` and works on
- * navy, light and dark surfaces (the supplied PNG logo is navy-on-white only).
+ * Creators Arena logo — uses the official navy brand asset.
+ * On dark backgrounds the image is rendered with a white container
+ * so the navy mark remains visible; pass `dark` to opt-in.
  */
 export function Logo({
   className,
   showWord = true,
+  dark = false,
 }: {
   className?: string;
+  /** When true the text/icon renders white (for dark hero backgrounds). */
   showWord?: boolean;
+  dark?: boolean;
 }) {
+  if (showWord) {
+    return (
+      <span className={cn("inline-flex items-center", className)}>
+        <Image
+          src="/brand/creators-arena-logo.svg"
+          alt="Creators Arena"
+          width={320}
+          height={200}
+          priority
+          className={cn(
+            "h-20 w-auto object-contain mt-4",
+            dark && "brightness-0 invert"
+          )}
+        />
+      </span>
+    );
+  }
+
+  // Icon-only fallback (used in tiny spots)
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <svg
-        viewBox="0 0 48 48"
-        className="h-9 w-9 shrink-0"
-        fill="none"
-        aria-hidden
-      >
-        <circle
-          cx="24"
-          cy="24"
-          r="20"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeDasharray="2.6 2.4"
-        />
-        <circle cx="24" cy="24" r="15" stroke="currentColor" strokeWidth="1.4" />
-        <path
-          d="M30 18.5a8.5 8.5 0 1 0 0 11"
-          stroke="currentColor"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
-      </svg>
-      {showWord && (
-        <span className="flex flex-col leading-none">
-          <span className="text-[1.15rem] font-extrabold tracking-[0.12em]">
-            CREATORS
-          </span>
-          <span className="mt-0.5 flex items-center gap-1.5 text-[0.6rem] font-semibold tracking-[0.45em] opacity-70">
-            <span className="h-px w-3 bg-current" />
-            ARENA
-            <span className="h-px w-3 bg-current" />
-          </span>
-        </span>
-      )}
+    <span className={cn("inline-flex items-center", className)}>
+      <Image
+        src="/brand/creators-arena-logo.svg"
+        alt="Creators Arena"
+        width={60}
+        height={60}
+        className={cn(
+          "h-14 w-14 object-contain",
+          dark && "brightness-0 invert"
+        )}
+      />
     </span>
   );
 }

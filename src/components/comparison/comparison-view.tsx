@@ -158,7 +158,7 @@ export function ComparisonView({
                     <CoverImage src={p.image} alt={p.name} gradient={p.gradient} sizes="40px" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-xs font-bold text-foreground">{p.name}</div>
+                    <div className="truncate text-xs font-bold text-foreground">{p.builder.name} {p.name}</div>
                     <div className="truncate text-[11px] text-muted-foreground">{p.locality}</div>
                   </div>
                   {n > 2 && (
@@ -250,7 +250,7 @@ export function ComparisonView({
                   </div>
                   <div className="p-4">
                     <h3 className="font-display text-base font-bold text-primary dark:text-foreground">
-                      {p.name}
+                      {p.builder.name} {p.name}
                     </h3>
                     <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                       <MapPin className="h-3.5 w-3.5 text-accent" /> {p.locality}
@@ -492,7 +492,7 @@ export function ComparisonView({
                   </div>
                   <div className="p-3">
                     <div className="truncate text-sm font-bold text-primary dark:text-foreground">
-                      {p.name}
+                      {p.builder.name} {p.name}
                     </div>
                     <div className="mb-2 flex items-center gap-1 truncate text-[11px] text-muted-foreground">
                       <MapPin className="h-3 w-3 text-accent" /> {p.locality}

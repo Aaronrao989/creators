@@ -9,6 +9,8 @@
  * Run: npx tsx scripts/attach-brochure-media.ts
  */
 import "dotenv/config";
+import fs from "node:fs";
+import path from "node:path";
 import { prisma } from "@/lib/db/prisma";
 
 // Match by the property name substring (case-insensitive) so we don't depend on
@@ -92,6 +94,18 @@ const MEDIA: Record<string, { type: string; file: string; alt: string }[]> = {
     { type: "gallery", file: "arihant-g1.jpg", alt: "Arihant Seasons balcony view" },
     { type: "gallery", file: "arihant-g2.jpg", alt: "Arihant Seasons lifestyle" },
   ],
+  // Files not yet downloaded from the brochure share-folders — drop them into
+  // public/properties/ with these names and re-run. Missing files are skipped.
+  Peridona: [
+    { type: "cover", file: "peridona-cover.jpg", alt: "CRC The Peridona, Jaypee Greens, Greater Noida" },
+    { type: "gallery", file: "peridona-g1.jpg", alt: "CRC The Peridona view" },
+    { type: "gallery", file: "peridona-g2.jpg", alt: "CRC The Peridona view" },
+  ],
+  "Crown Residency": [
+    { type: "cover", file: "crown-cover.jpg", alt: "Godrej Crown Residency, Greater Noida" },
+    { type: "gallery", file: "crown-g1.jpg", alt: "Godrej Crown Residency view" },
+    { type: "gallery", file: "crown-g2.jpg", alt: "Godrej Crown Residency view" },
+  ],
 };
 
 async function main() {
@@ -104,12 +118,23 @@ async function main() {
       console.warn(`! no property matching "${name}" — skipped`);
       continue;
     }
+    // Only attach files that actually exist on disk, so a missing image never
+    // becomes a broken <img> row (the UI's gradient placeholder is preferable).
+    const present = items.filter((m) => {
+      const exists = fs.existsSync(path.resolve("public/properties", m.file));
+      if (!exists) console.warn(`  ! missing file public/properties/${m.file} — skipped`);
+      return exists;
+    });
+    if (present.length === 0) {
+      console.warn(`! ${property.name}: no image files present yet — skipped`);
+      continue;
+    }
     // Replace only the cover/gallery media we manage here (idempotent).
     await prisma.propertyMedia.deleteMany({
       where: { propertyId: property.id, type: { in: ["cover", "gallery"] } },
     });
     await prisma.propertyMedia.createMany({
-      data: items.map((m, i) => ({
+      data: present.map((m, i) => ({
         propertyId: property.id,
         type: m.type,
         url: `/properties/${m.file}`,
@@ -117,7 +142,7 @@ async function main() {
         sortOrder: i,
       })),
     });
-    console.log(`✓ ${property.name}: attached ${items.length} media`);
+    console.log(`✓ ${property.name}: attached ${present.length} media`);
   }
   await prisma.$disconnect();
 }

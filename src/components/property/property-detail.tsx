@@ -173,7 +173,7 @@ export function PropertyDetail({
       {/* Header card */}
       <div className="mt-4 grid gap-4 rounded-2xl border border-border bg-card p-5 shadow-glass lg:grid-cols-[1.4fr_1fr]">
         <div>
-          <h1 className="font-display text-2xl font-extrabold text-primary dark:text-foreground">{p.name}</h1>
+          <h1 className="font-display text-2xl font-extrabold text-primary dark:text-foreground">{p.builder.name} {p.name}</h1>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4 text-accent" /> {p.locality}, {p.city}
           </p>
@@ -374,7 +374,7 @@ export function PropertyDetail({
                   <CoverImage src={s.image} alt={s.name} gradient={s.gradient} label={s.name} sizes="280px" />
                 </div>
                 <div className="p-3">
-                  <div className="truncate text-sm font-bold text-primary dark:text-foreground">{s.name}</div>
+                  <div className="truncate text-sm font-bold text-primary dark:text-foreground">{s.builder.name} {s.name}</div>
                   <div className="truncate text-[11px] font-semibold text-accent">{s.builder.name}</div>
                   <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
                     <MapPin className="h-3 w-3" /> {s.locality}, {s.city}

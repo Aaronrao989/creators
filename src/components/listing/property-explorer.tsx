@@ -670,7 +670,7 @@ const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
       </div>
 
       <div className="flex flex-1 flex-col p-4">
-        <h3 className="font-display text-base font-bold text-primary dark:text-foreground">{p.name}</h3>
+        <h3 className="font-display text-base font-bold text-primary dark:text-foreground">{p.builder.name} {p.name}</h3>
         <p className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-accent">
           <Building2 className="h-3 w-3" /> {p.builder.name}
         </p>
