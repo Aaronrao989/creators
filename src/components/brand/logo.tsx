@@ -20,13 +20,13 @@ export function Logo({
     return (
       <span className={cn("inline-flex items-center", className)}>
         <Image
-          src="/brand/creators-arena-logo.svg"
+          src="/brand/creators-logo.png"
           alt="Creators Arena"
           width={320}
           height={200}
           priority
           className={cn(
-            "h-20 w-auto object-contain mt-4",
+            "h-28 w-auto object-contain mt-4",
             dark && "brightness-0 invert"
           )}
         />
@@ -38,7 +38,7 @@ export function Logo({
   return (
     <span className={cn("inline-flex items-center", className)}>
       <Image
-        src="/brand/creators-arena-logo.svg"
+        src="/brand/creators-logo.png"
         alt="Creators Arena"
         width={60}
         height={60}
