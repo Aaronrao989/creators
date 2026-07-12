@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  Bookmark,
   Building2,
   Check,
   ClipboardList,
@@ -28,6 +29,7 @@ import { compareProperties, scoreTier } from "@/lib/scoring";
 import { useComparison } from "@/store/comparison";
 import { useAuth, selectShortlistIds } from "@/store/auth";
 import { useMounted } from "@/lib/use-mounted";
+import { setPendingAction } from "@/lib/pending-action";
 import { LocationMap } from "@/components/comparison/location-map";
 import { Button } from "@/components/ui/button";
 import { CoverImage } from "@/components/ui/cover-image";
@@ -81,10 +83,51 @@ export function ComparisonView({
   const isSaved = (id: string) => mounted && savedIds.includes(id);
   const handleShortlist = (id: string) => {
     if (!user) {
+      setPendingAction({ type: "shortlist", propertyId: id });
       router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
     toggleShortlist(id);
+  };
+
+  // Union of every amenity across the compared properties (complete comparison).
+  const unionAmenities = React.useMemo(() => {
+    const map = new Map<string, string>();
+    properties.forEach((p) =>
+      p.amenityList.forEach((a) => {
+        if (!map.has(a.key)) map.set(a.key, a.label);
+      }),
+    );
+    return [...map.entries()]
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [properties]);
+  const hasAmenity = (p: Property, key: string) =>
+    p.amenityList.some((a) => a.key === key && a.available);
+
+  const setToast = useComparison((s) => s.setToast);
+  const [saving, setSaving] = React.useState(false);
+  const handleSaveComparison = async () => {
+    const propertyIds = properties.map((p) => p.id);
+    if (!user) {
+      // Guest: remember the intent, authenticate, then it replays automatically.
+      setPendingAction({ type: "saveComparison", propertyIds });
+      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/saved-comparisons", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ propertyIds }),
+      });
+      setToast(res.ok ? "Comparison saved." : "Could not save. Please try again.");
+    } catch {
+      setToast("Could not save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Responsive comparison columns. Columns fill the row on desktop and for a
@@ -134,6 +177,13 @@ export function ComparisonView({
               className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
             >
               <Download className="h-3.5 w-3.5" /> Download PDF
+            </button>
+            <button
+              onClick={handleSaveComparison}
+              disabled={saving}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-accent bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent transition-colors hover:bg-accent/15 disabled:opacity-60"
+            >
+              <Bookmark className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save"}
             </button>
           </div>
         </div>
@@ -270,11 +320,11 @@ export function ComparisonView({
                         />
                         Shortlist
                       </button>
-                      <a href="tel:+919252996677" className="block">
+                      <Link href={`/properties/${p.id}`} className="block">
                         <Button variant="accent" size="sm" className="w-full">
                           View Details
                         </Button>
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -337,12 +387,12 @@ export function ComparisonView({
                 className="divide-y divide-border"
                 style={{ minWidth: n > 2 ? `${144 + n * 64}px` : undefined }}
               >
-                {AMENITIES.map((a) => (
+                {unionAmenities.map((a) => (
                   <div key={a.key} className="grid items-center py-2.5" style={{ gridTemplateColumns: `minmax(130px,1fr) repeat(${n}, 64px)` }}>
                     <span className="sticky left-0 z-[1] bg-card px-4 text-sm font-medium text-foreground">{a.label}</span>
                     {properties.map((p) => (
                       <span key={p.id} className="flex justify-center">
-                        {p.amenities[a.key] ? (
+                        {hasAmenity(p, a.key) ? (
                           <Check className="h-5 w-5 rounded-full bg-success/15 p-0.5 text-success" />
                         ) : (
                           <X className="h-5 w-5 rounded-full bg-danger/15 p-0.5 text-danger/70" />

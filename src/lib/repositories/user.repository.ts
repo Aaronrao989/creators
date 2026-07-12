@@ -4,6 +4,7 @@ export interface UserRecord {
   id: string;
   name: string;
   email: string;
+  phoneNumber: string | null;
   provider: string;
   savedPropertyIds: string[];
 }
@@ -12,6 +13,7 @@ type UserRow = {
   id: string;
   name: string;
   email: string;
+  phoneNumber: string | null;
   provider: string;
   passwordHash: string | null;
   savedPropertyIds: string[];
@@ -21,6 +23,7 @@ const toRecord = (u: UserRow): UserRecord => ({
   id: u.id,
   name: u.name,
   email: u.email,
+  phoneNumber: u.phoneNumber ?? null,
   provider: u.provider,
   savedPropertyIds: u.savedPropertyIds ?? [],
 });
@@ -39,6 +42,7 @@ export const userRepository = {
   async create(input: {
     name: string;
     email: string;
+    phoneNumber?: string | null;
     passwordHash?: string | null;
     provider?: string;
   }): Promise<UserRecord> {
@@ -46,6 +50,7 @@ export const userRepository = {
       data: {
         name: input.name,
         email: input.email.toLowerCase(),
+        phoneNumber: input.phoneNumber ?? null,
         passwordHash: input.passwordHash ?? null,
         provider: input.provider ?? "email",
       },

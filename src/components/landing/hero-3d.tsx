@@ -126,9 +126,9 @@ export function Hero3D() {
 
             <Layer sx={sx} sy={sy} depth={20} z={10} className="left-[2%] top-[26%]">
               <DeckCard
-                image="/properties/villa-luxury.png"
-                name="Sobha Intl. City"
-                meta="Gurugram · Villa"
+                image="/properties/villa-aerial.jpg"
+                name="The Estate"
+                meta="Yamuna Exp · Villa"
                 price="₹6.5 Cr"
                 score={66}
                 rotate={-7}
@@ -138,9 +138,9 @@ export function Hero3D() {
 
             <Layer sx={sx} sy={sy} depth={70} z={70} className="right-[2%] top-[14%]">
               <DeckCard
-                image="/properties/towers-courtyard.jpg"
-                name="ATS Royale"
-                meta="Noida Ext · Ready"
+                image="/properties/arihant-cover.jpg"
+                name="Arihant Aspire"
+                meta="Gr. Noida · Ready"
                 price="₹65 L"
                 score={62}
                 rotate={6}
@@ -261,8 +261,8 @@ function WinnerCard() {
       <div className="w-64 overflow-hidden rounded-2xl border-2 border-accent bg-card shadow-glow">
         <div className="relative h-32 w-full">
           <Image
-            src="/properties/render-blue.jpg"
-            alt="Godrej Woods"
+            src="/properties/chrysalis-cover.jpg"
+            alt="Chrysalis"
             fill
             priority
             unoptimized
@@ -276,7 +276,7 @@ function WinnerCard() {
         <div className="p-3.5">
           <div className="flex items-center justify-between">
             <div className="text-sm font-extrabold text-primary dark:text-foreground">
-              Godrej Woods
+              Chrysalis
             </div>
             <div className="text-sm font-extrabold text-accent">₹3.2 Cr</div>
           </div>

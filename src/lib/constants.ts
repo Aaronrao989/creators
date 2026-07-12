@@ -7,12 +7,9 @@ import type { City, Possession, PropertyKind } from "@/lib/types";
  */
 
 export const CITIES: City[] = [
-  "Noida",
-  "Greater Noida",
+  "Greater Noida East",
   "Greater Noida West",
   "Yamuna Expressway",
-  "Gurugram",
-  "Delhi",
 ];
 
 export const KINDS: PropertyKind[] = [

@@ -24,7 +24,12 @@ interface AuthState {
   /** true once the initial /me hydration has completed */
   ready: boolean;
   hydrate: () => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
+  signup: (
+    name: string,
+    email: string,
+    phone: string,
+    password: string,
+  ) => Promise<boolean>;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   toggleShortlist: (propertyId: string) => Promise<boolean>;
@@ -62,8 +67,13 @@ export const useAuth = create<AuthState>((set, get) => ({
     }
   },
 
-  signup: async (name, email, password) => {
-    const { ok, data } = await postJson("/api/auth/signup", { name, email, password });
+  signup: async (name, email, phone, password) => {
+    const { ok, data } = await postJson("/api/auth/signup", {
+      name,
+      email,
+      phone,
+      password,
+    });
     if (!ok) {
       set({ error: data?.error ?? "Sign up failed. Please try again." });
       return false;

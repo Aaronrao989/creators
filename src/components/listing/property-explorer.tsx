@@ -25,6 +25,7 @@ import { CITIES, POSSESSIONS } from "@/lib/constants";
 import { MIN_COMPARE, useComparison } from "@/store/comparison";
 import { useAuth } from "@/store/auth";
 import { useMounted } from "@/lib/use-mounted";
+import { setPendingAction } from "@/lib/pending-action";
 import { CompareBar } from "@/components/selection/compare-bar";
 import { Button } from "@/components/ui/button";
 import { CoverImage } from "@/components/ui/cover-image";
@@ -103,9 +104,12 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
   const filtered = React.useMemo(() => {
     let list = initial.filter((p) => TABS[tab].test(p));
     if (locations.size) list = list.filter((p) => locations.has(p.city));
-    if (locQuery)
+    const q = locQuery.trim().toLowerCase();
+    if (q)
       list = list.filter((p) =>
-        `${p.locality} ${p.city}`.toLowerCase().includes(locQuery.toLowerCase()),
+        `${p.name} ${p.builder.name} ${p.locality} ${p.city}`
+          .toLowerCase()
+          .includes(q),
       );
     if (budgetIdx != null) list = list.filter(BUDGETS[budgetIdx].test);
     if (areaIdx != null) list = list.filter(AREAS[areaIdx].test);
@@ -200,7 +204,7 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
           <input
             value={locQuery}
             onChange={(e) => setLocQuery(e.target.value)}
-            placeholder="Search location"
+            placeholder="Search property, builder, location"
             className="h-9 w-full rounded-lg border border-border bg-background pl-8 pr-2 text-xs outline-none ring-accent/40 focus:ring-2"
           />
         </div>
@@ -417,7 +421,7 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
               </Button>
             </div>
           ) : (
-            <motion.div layout className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <motion.div layout className="grid gap-5 sm:auto-rows-fr sm:grid-cols-2 xl:grid-cols-3">
               <AnimatePresence mode="popLayout">
                 {filtered.map((p) => (
                   <ListingCard key={p.id} property={p} />
@@ -645,6 +649,7 @@ const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
 
   const handleShortlist = () => {
     if (!user) {
+      setPendingAction({ type: "shortlist", propertyId: p.id });
       router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
@@ -691,7 +696,7 @@ const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
           <span>· {p.towers} {p.towers === 1 ? "tower" : "towers"}</span>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-[1fr_1fr_auto]">
+        <div className="mt-auto grid grid-cols-2 gap-1.5 pt-3 sm:grid-cols-[1fr_1fr_auto]">
           <button
             onClick={handleShortlist}
             className={cn(

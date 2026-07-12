@@ -28,16 +28,36 @@ function assertPasswordPolicy(password: string): void {
     );
 }
 
+/**
+ * Validate + canonicalise an Indian mobile number. Accepts an optional +91 /
+ * 91 / leading-0 and any spaces or dashes, then stores the 10-digit local form
+ * (must start 6–9). Throws a 400 on anything else.
+ */
+function normalizePhone(phone: string): string {
+  let local = phone.replace(/[^\d]/g, "");
+  if (local.length === 12 && local.startsWith("91")) local = local.slice(2);
+  else if (local.length === 11 && local.startsWith("0")) local = local.slice(1);
+  if (!/^[6-9]\d{9}$/.test(local))
+    throw new AppError("Enter a valid 10-digit Indian mobile number.", 400);
+  return local;
+}
+
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 
 export const authService = {
-  async signup(name: string, email: string, password: string): Promise<SafeUser> {
+  async signup(
+    name: string,
+    email: string,
+    phone: string,
+    password: string,
+  ): Promise<SafeUser> {
     const cleanName = name.trim();
     const mail = email.trim().toLowerCase();
-    if (!cleanName || !mail || !password) {
+    if (!cleanName || !mail || !phone || !password) {
       throw new AppError("Please fill in every field.", 400);
     }
     if (!EMAIL_RE.test(mail)) throw new AppError("Enter a valid email address.", 400);
+    const phoneNumber = normalizePhone(phone);
     assertPasswordPolicy(password);
 
     const existing = await userRepository.findByEmail(mail);
@@ -47,6 +67,7 @@ export const authService = {
     return userRepository.create({
       name: cleanName,
       email: mail,
+      phoneNumber,
       passwordHash: hashPassword(password),
       provider: "email",
     });
@@ -62,6 +83,7 @@ export const authService = {
       id: row.id,
       name: row.name,
       email: row.email,
+      phoneNumber: row.phoneNumber ?? null,
       provider: row.provider,
       savedPropertyIds: row.savedPropertyIds ?? [],
     };

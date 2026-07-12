@@ -7,7 +7,7 @@ import { handleError, json, parseJsonBody } from "@/lib/api/http";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** POST /api/auth/signup — { name, email, password } → creates account + session. */
+/** POST /api/auth/signup — { name, email, phone, password } → account + session. */
 export async function POST(req: NextRequest) {
   try {
     enforceRateLimit(req, {
@@ -18,11 +18,13 @@ export async function POST(req: NextRequest) {
     const body = (await parseJsonBody(req)) as {
       name?: string;
       email?: string;
+      phone?: string;
       password?: string;
     };
     const user = await authService.signup(
       body.name ?? "",
       body.email ?? "",
+      body.phone ?? "",
       body.password ?? "",
     );
     setSessionCookie(user.id);

@@ -16,3 +16,7 @@ next-env.d.ts
 .env
 tsconfig.tsbuildinfo
 .pgdata/
+
+# Raw source datasets — large brochure PDFs, not app assets
+creators data/
+creators_new/

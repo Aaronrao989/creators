@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Building2,
   CalendarCheck,
+  Check,
   ChevronRight,
   Dumbbell,
   Expand,
@@ -23,6 +24,7 @@ import type { AmenityKey, Property } from "@/lib/types";
 import { useComparison } from "@/store/comparison";
 import { useAuth } from "@/store/auth";
 import { useMounted } from "@/lib/use-mounted";
+import { setPendingAction } from "@/lib/pending-action";
 import { Button } from "@/components/ui/button";
 import { CoverImage } from "@/components/ui/cover-image";
 import { Lightbox } from "@/components/ui/lightbox";
@@ -75,6 +77,7 @@ export function PropertyDetail({
 
   const handleShortlist = () => {
     if (!user) {
+      setPendingAction({ type: "shortlist", propertyId: p.id });
       router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
@@ -84,11 +87,18 @@ export function PropertyDetail({
   const rating = reviewAvg ?? p.builder.rating;
 
   const [activePlan, setActivePlan] = React.useState(0);
-  const plan = p.floorPlans[activePlan] ?? p.floorPlans[0];
+  // Only surface floor plans backed by a real brochure image — never present a
+  // config card with a gradient placeholder as a "floor plan" (e.g. projects
+  // with a datasheet but no brochure). When none exist, we show a soft notice.
+  const floorPlansWithImages = p.floorPlans.filter((fp) => fp.image);
+  const hasFloorPlans = floorPlansWithImages.length > 0;
+  const plan = floorPlansWithImages[activePlan] ?? floorPlansWithImages[0];
   const [zoom, setZoom] = React.useState<string | null>(null);
 
   const mapsQuery = encodeURIComponent(`${p.name} ${p.locality} ${p.city}`);
   const mapsLink = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+
+  const availableAmenities = p.amenityList.filter((a) => a.available);
 
   // Gallery side tiles — ONLY real brochure images (no empty placeholder slots).
   const tiles: string[] = [...p.gallery].slice(0, 4);
@@ -113,7 +123,7 @@ export function PropertyDetail({
     },
     {
       q: "What are the available configurations?",
-      a: `This project offers ${p.configs} configurations${plan ? `, from ${Math.min(...p.floorPlans.map((f) => f.areaSqFt)).toLocaleString("en-IN")} sq.ft onwards` : ""}.`,
+      a: `This project offers ${p.configs} configurations${p.floorPlans.length ? `, from ${Math.min(...p.floorPlans.map((f) => f.areaSqFt)).toLocaleString("en-IN")} sq.ft onwards` : ""}.`,
     },
     {
       q: "Is metro connectivity available?",
@@ -260,8 +270,11 @@ export function PropertyDetail({
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <div className="rounded-2xl border border-border bg-card p-5 shadow-glass">
           <h2 className="mb-3 font-display text-base font-bold text-primary dark:text-foreground">Floor Plans</h2>
+          {!hasFloorPlans && (
+            <p className="text-sm text-muted-foreground">Floor plans will be available soon.</p>
+          )}
           <div className="mb-3 flex flex-wrap gap-2">
-            {p.floorPlans.map((fp, i) => (
+            {floorPlansWithImages.map((fp, i) => (
               <button
                 key={`${fp.config}-${fp.areaSqFt}-${i}`}
                 onClick={() => setActivePlan(i)}
@@ -295,7 +308,30 @@ export function PropertyDetail({
               </button>
               <div className="rounded-xl bg-muted/50 p-3">
                 <div className="text-sm font-bold text-foreground">{plan.config} Floor Plan</div>
-                <div className="mt-0.5 text-xs text-muted-foreground">Super Area: {plan.areaSqFt.toLocaleString("en-IN")} sq.ft</div>
+                <dl className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                  <div className="flex justify-between gap-2">
+                    <dt>Super Area</dt>
+                    <dd className="font-semibold text-foreground">{plan.areaSqFt.toLocaleString("en-IN")} sq.ft</dd>
+                  </div>
+                  {plan.carpetAreaSqFt != null && (
+                    <div className="flex justify-between gap-2">
+                      <dt>Carpet Area</dt>
+                      <dd className="font-semibold text-foreground">{plan.carpetAreaSqFt.toLocaleString("en-IN")} sq.ft</dd>
+                    </div>
+                  )}
+                  {plan.builtUpAreaSqFt != null && (
+                    <div className="flex justify-between gap-2">
+                      <dt>Built-up Area</dt>
+                      <dd className="font-semibold text-foreground">{plan.builtUpAreaSqFt.toLocaleString("en-IN")} sq.ft</dd>
+                    </div>
+                  )}
+                  {plan.balconyAreaSqFt != null && (
+                    <div className="flex justify-between gap-2">
+                      <dt>Balcony Area</dt>
+                      <dd className="font-semibold text-foreground">{plan.balconyAreaSqFt.toLocaleString("en-IN")} sq.ft</dd>
+                    </div>
+                  )}
+                </dl>
                 <div className="mt-2 text-sm font-bold text-accent">{plan.priceLabel}</div>
               </div>
             </div>
@@ -303,14 +339,25 @@ export function PropertyDetail({
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-glass">
-          <h2 className="mb-3 font-display text-base font-bold text-primary dark:text-foreground">Amenities</h2>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
-            {AMENITY_ORDER.filter((k) => p.amenities[k]).map((k) => (
-              <div key={k} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground">
-                <AmenityIcon k={k} /> {AMENITY_LABELS[k]}
-              </div>
-            ))}
-          </div>
+          <h2 className="mb-3 flex items-center gap-2 font-display text-base font-bold text-primary dark:text-foreground">
+            Amenities
+            {availableAmenities.length > 0 && (
+              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">
+                {availableAmenities.length}
+              </span>
+            )}
+          </h2>
+          {availableAmenities.length > 0 ? (
+            <div className="grid grid-cols-2 gap-2">
+              {availableAmenities.map((a) => (
+                <div key={a.key} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground">
+                  <Check className="h-3.5 w-3.5 shrink-0 text-accent" /> {a.label}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Not Available</p>
+          )}
         </div>
       </div>
 

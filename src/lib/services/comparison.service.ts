@@ -1,4 +1,5 @@
 import { propertyRepository } from "@/lib/repositories/property.repository";
+import { propertyService } from "@/lib/services/property.service";
 import { compareProperties } from "@/lib/scoring";
 import { ValidationError } from "@/lib/errors";
 import { MIN_COMPARE, MAX_COMPARE } from "@/lib/constants";
@@ -35,7 +36,7 @@ export const comparisonService = {
       throw new ValidationError("Some selected properties could not be found");
 
     const result = compareProperties(properties);
-    const similar = await propertyRepository.findExcluding(
+    const similar = await propertyService.getSimilar(
       properties.map((p) => p.id),
       3,
     );

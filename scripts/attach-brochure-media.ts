@@ -106,6 +106,10 @@ const MEDIA: Record<string, { type: string; file: string; alt: string }[]> = {
     { type: "gallery", file: "crown-g1.jpg", alt: "Godrej Crown Residency view" },
     { type: "gallery", file: "crown-g2.jpg", alt: "Godrej Crown Residency view" },
   ],
+  // Cover = front elevation extracted from the project's brochure.
+  Sephyra: [
+    { type: "cover", file: "sephyra-cover.jpg", alt: "Imperia The Sephyra front elevation, Yamuna Expressway" },
+  ],
 };
 
 async function main() {

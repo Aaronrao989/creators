@@ -266,8 +266,9 @@ model Review {
 // ───────────────────────── Users ─────────────────────────
 model User {
   id               String            @id @default(uuid()) @db.Uuid
-  name             String
+  name             String // full name (form label: "Full name")
   email            String            @unique
+  phoneNumber      String? // required at registration; nullable so pre-existing accounts survive
   passwordHash     String?
   provider         String            @default("email")
   savedPropertyIds String[]          @default([])

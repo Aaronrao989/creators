@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Heart, Lock, Mail, User2 } from "lucide-react";
+import { Eye, EyeOff, Heart, Lock, Mail, Phone, User2 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/store/auth";
@@ -14,7 +14,9 @@ export function AuthScreen({ initialMode }: { initialMode: "login" | "signup" })
   const [mode, setMode] = React.useState<"login" | "signup">(initialMode);
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
+  const [phone, setPhone] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [confirm, setConfirm] = React.useState("");
   const [show, setShow] = React.useState(false);
 
   const login = useAuth((s) => s.login);
@@ -33,11 +35,25 @@ export function AuthScreen({ initialMode }: { initialMode: "login" | "signup" })
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup") {
+      // Client-side validation for clear, immediate errors (server re-validates).
+      let local = phone.replace(/\D/g, "");
+      if (local.length === 12 && local.startsWith("91")) local = local.slice(2);
+      else if (local.length === 11 && local.startsWith("0")) local = local.slice(1);
+      if (!/^[6-9]\d{9}$/.test(local)) {
+        setError("Enter a valid 10-digit Indian mobile number.");
+        return;
+      }
+      if (password !== confirm) {
+        setError("Passwords do not match.");
+        return;
+      }
+    }
     setSubmitting(true);
     const ok =
       mode === "login"
         ? await login(email, password)
-        : await signup(name, email, password);
+        : await signup(name, email, phone, password);
     setSubmitting(false);
     if (ok) redirectAfterAuth();
   };
@@ -105,6 +121,19 @@ export function AuthScreen({ initialMode }: { initialMode: "login" | "signup" })
                 className="auth-input"
               />
             </Field>
+            {!isLogin && (
+              <Field icon={Phone} label="Phone number">
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="98765 43210"
+                  autoComplete="tel"
+                  inputMode="numeric"
+                  className="auth-input"
+                />
+              </Field>
+            )}
             <Field icon={Lock} label="Password">
               <input
                 type={show ? "text" : "password"}
@@ -123,6 +152,18 @@ export function AuthScreen({ initialMode }: { initialMode: "login" | "signup" })
                 {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </Field>
+            {!isLogin && (
+              <Field icon={Lock} label="Confirm password">
+                <input
+                  type={show ? "text" : "password"}
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  className="auth-input"
+                />
+              </Field>
+            )}
 
             {isLogin && (
               <div className="text-right">

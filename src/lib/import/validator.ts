@@ -2,6 +2,39 @@ import type { ParsedProject } from "@/lib/import/parser";
 import * as C from "@/lib/import/cleaners";
 import { formatPriceLakh } from "@/lib/utils";
 
+/**
+ * Corrections for known builder-name typos in the source client sheets (data
+ * entry errors). Keyed by the exact raw cell value so re-imports self-heal.
+ */
+const BUILDER_NAME_FIXES: Record<string, string> = {
+  "Purvanchal ProjProjectcts": "Purvanchal Projects",
+  "Purvanchal": "Purvanchal Projects",
+};
+
+/**
+ * Canonical display name per builder, matched case-insensitively so variants
+ * like "ELDECO"/"Eldeco" collapse to a single builder (dedup). Acronym builders
+ * (SKA, CRC, VVIP) are left as-is by omission.
+ */
+const BUILDER_CANONICAL: Record<string, string> = {
+  ELDECO: "Eldeco",
+  GAURS: "Gaurs",
+  ARIHANT: "Arihant",
+  IMPERIA: "Imperia",
+};
+
+/**
+ * Canonicalise city/location to the specific locations used by the source
+ * folders (exact-match on the raw cell value). Fixes the "Yamuna Expessway"
+ * typo, and resolves generic "Greater Noida" to "Greater Noida East" — every
+ * such project in the source data lives under the Greater Noida East folder;
+ * West projects already carry "Greater Noida West" and are untouched.
+ */
+const CITY_FIXES: Record<string, string> = {
+  "Yamuna Expessway": "Yamuna Expressway",
+  "Greater Noida": "Greater Noida East",
+};
+
 export interface Issue {
   level: "error" | "warning";
   field: string;
@@ -141,8 +174,15 @@ export function validateAndClean(parsed: ParsedProject): ValidationResult {
 
   // ---- mandatory fields ----
   const projectName = C.str(s.projectName);
-  const builderName = C.str(s.builderName);
-  const city = C.str(s.city);
+  const rawBuilderName = C.str(s.builderName);
+  const fixedBuilderName = rawBuilderName
+    ? BUILDER_NAME_FIXES[rawBuilderName] ?? rawBuilderName
+    : rawBuilderName;
+  const builderName = fixedBuilderName
+    ? BUILDER_CANONICAL[fixedBuilderName.toUpperCase()] ?? fixedBuilderName
+    : fixedBuilderName;
+  const rawCity = C.str(s.city);
+  const city = rawCity ? CITY_FIXES[rawCity] ?? rawCity : rawCity;
   if (!projectName) err("projectName", "Missing mandatory field: Project Name");
   if (!builderName) err("builderName", "Missing mandatory field: Builder Name");
   if (!city) err("city", "Missing mandatory field: City");
@@ -326,7 +366,9 @@ export function validateAndClean(parsed: ParsedProject): ValidationResult {
   const configsLabel = bhks.length ? `${bhks.join(" / ")} BHK` : "";
 
   const subtitle = [C.str(s.category), C.str(s.projectType)].filter(Boolean).join(" ");
-  const slug = C.slugify(builderName, projectName);
+  // Slug (idempotency key) + derived colour use the RAW name so a display-name
+  // correction never changes a property's identity (avoids duplicate on re-import).
+  const slug = C.slugify(rawBuilderName, projectName);
 
   const project: NormalizedProject | null =
     projectName && builderName && city

@@ -80,6 +80,15 @@ function mapProperty(p: PropertyRow): Property {
     if (key) amenities[key] = a.available;
   }
 
+  // Full source amenity list (available first, then alphabetical) for display.
+  const amenityList = p.amenities
+    .map((a) => ({ key: a.key, label: a.label, available: a.available }))
+    .sort(
+      (x, y) =>
+        Number(y.available) - Number(x.available) ||
+        x.label.localeCompare(y.label),
+    );
+
   // Real media only. When the client sheet has no image we return "" and the UI
   // renders a branded gradient placeholder rather than a misleading stock photo.
   const cover =
@@ -112,6 +121,7 @@ function mapProperty(p: PropertyRow): Property {
     gallery,
     gradient: [p.gradientFrom, p.gradientTo],
     amenities,
+    amenityList,
     location: {
       // Source provides travel TIME (minutes); we surface it in the existing slots.
       metroKm: p.location?.metroMin ?? 0,
@@ -128,6 +138,9 @@ function mapProperty(p: PropertyRow): Property {
     floorPlans: p.configurations.map((c) => ({
       config: c.label,
       areaSqFt: c.areaSqFt,
+      carpetAreaSqFt: c.carpetAreaSqft ?? null,
+      balconyAreaSqFt: c.balconyAreaSqft ?? null,
+      builtUpAreaSqFt: c.builtUpAreaSqft ?? null,
       priceLabel: c.priceLabel,
       image: c.floorPlanImage || "",
     })),

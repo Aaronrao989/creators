@@ -12,12 +12,9 @@ export type Possession = "Ready to Move" | "Under Construction" | "New Launch";
 export type PropertyKind = "Apartment" | "Villa" | "Plot" | "Builder Floor";
 
 export type City =
-  | "Noida"
-  | "Greater Noida"
+  | "Greater Noida East"
   | "Greater Noida West"
-  | "Yamuna Expressway"
-  | "Gurugram"
-  | "Delhi";
+  | "Yamuna Expressway";
 
 /** A real-estate developer / builder. */
 export interface Builder {
@@ -37,6 +34,13 @@ export interface Amenity {
   key: AmenityKey;
   label: string;
   /** Whether the project offers it. */
+  available: boolean;
+}
+
+/** A source-driven amenity (the full brochure list, not just the fixed keys). */
+export interface AmenityItem {
+  key: string;
+  label: string;
   available: boolean;
 }
 
@@ -75,7 +79,13 @@ export type BestForTag = "Families" | "Investors" | "Luxury Buyers" | "Rental In
 
 export interface FloorPlan {
   config: string; // e.g. "2 BHK"
-  areaSqFt: number;
+  areaSqFt: number; // headline (saleable/super) area
+  /** Carpet area (sq.ft) when the source provides it. */
+  carpetAreaSqFt: number | null;
+  /** Balcony/terrace area (sq.ft) when the source provides it. */
+  balconyAreaSqFt: number | null;
+  /** Built-up area (sq.ft) when the source provides it. */
+  builtUpAreaSqFt: number | null;
   priceLabel: string;
   image: string;
 }
@@ -109,6 +119,8 @@ export interface Property {
   /** Tailwind-friendly gradient stops for the card fallback / accent. */
   gradient: [string, string];
   amenities: Record<AmenityKey, boolean>;
+  /** The complete source amenity list (label + availability), for display. */
+  amenityList: AmenityItem[];
   location: LocationMetrics;
   investment: InvestmentMetrics;
   floorPlans: FloorPlan[];

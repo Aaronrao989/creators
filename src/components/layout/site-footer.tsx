@@ -55,7 +55,7 @@ export function SiteFooter() {
           </h4>
           <ul className="space-y-3 text-sm text-primary-foreground/75">
             <li className="flex items-center gap-2.5">
-              <Phone className="h-4 w-4 text-accent" /> +91-925-299-6677
+              <Phone className="h-4 w-4 text-accent" /> +91-9891321123
             </li>
             <li className="flex items-center gap-2.5">
               <Mail className="h-4 w-4 text-accent" /> contact@creatorshome.in
