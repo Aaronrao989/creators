@@ -33,12 +33,20 @@ import { CoverImage } from "@/components/ui/cover-image";
 import { cn, formatPriceLakh } from "@/lib/utils";
 
 const BHK_OPTS = [1, 2, 3, 4];
-const BUDGETS: { label: string; test: (p: Property) => boolean }[] = [
-  { label: "Under ₹50 L", test: (p) => p.priceLakh < 50 },
-  { label: "₹50 L - ₹1 Cr", test: (p) => p.priceLakh >= 50 && p.priceLakh < 100 },
-  { label: "₹1 Cr - ₹2 Cr", test: (p) => p.priceLakh >= 100 && p.priceLakh < 200 },
-  { label: "Above ₹2 Cr", test: (p) => p.priceLakh >= 200 },
-];
+// Compact price label for the budget range (e.g. 250 → "₹2.5Cr", 79 → "₹79L").
+const fmtBudget = (lakh: number): string => {
+  if (lakh >= 100) {
+    const cr = (lakh / 100).toFixed(2).replace(/\.?0+$/, "");
+    return `₹${cr}Cr`;
+  }
+  return `₹${Math.round(lakh)}L`;
+};
+// Native range-thumb styling (self-contained, no global CSS). Only the thumb is
+// interactive so two overlaid sliders don't block each other.
+const THUMB =
+  "pointer-events-none absolute inset-0 h-1.5 w-full cursor-pointer appearance-none bg-transparent " +
+  "[&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-accent [&::-webkit-slider-thumb]:shadow-md " +
+  "[&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-accent [&::-moz-range-thumb]:shadow-md [&::-moz-range-track]:bg-transparent";
 // Filter by max unit size (super area, sq.ft) across a project's configs.
 const maxArea = (p: Property) =>
   p.floorPlans.length ? Math.max(...p.floorPlans.map((f) => f.areaSqFt)) : 0;
@@ -88,7 +96,9 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
   const [tab, setTab] = React.useState(0);
   const [locQuery, setLocQuery] = React.useState("");
   const [locations, setLocations] = React.useState<Set<City>>(new Set());
-  const [budgetIdx, setBudgetIdx] = React.useState<number | null>(null);
+  // Budget range (in lakhs). Bounds are derived from the live data; `budget` is
+  // null until the user drags a handle. Effective range falls back to bounds.
+  const [budget, setBudget] = React.useState<[number, number] | null>(null);
   const [areaIdx, setAreaIdx] = React.useState<number | null>(null);
   const [bhks, setBhks] = React.useState<Set<number>>(new Set());
   const [possessions, setPossessions] = React.useState<Set<Possession>>(new Set());
@@ -102,6 +112,22 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
     [initial],
   );
 
+  // Budget bounds derived from real priced properties (rounded to ₹5 L steps).
+  const priceBounds = React.useMemo(() => {
+    const ps = initial.map((p) => p.priceLakh).filter((n) => n > 0);
+    if (!ps.length) return { min: 0, max: 0 };
+    return {
+      min: Math.floor(Math.min(...ps) / 5) * 5,
+      max: Math.ceil(Math.max(...ps) / 5) * 5,
+    };
+  }, [initial]);
+  const budgetRange = React.useMemo<[number, number]>(
+    () => budget ?? [priceBounds.min, priceBounds.max],
+    [budget, priceBounds],
+  );
+  const budgetActive =
+    budget != null && (budget[0] > priceBounds.min || budget[1] < priceBounds.max);
+
   const filtered = React.useMemo(() => {
     let list = initial.filter((p) => TABS[tab].test(p));
     if (locations.size) list = list.filter((p) => locations.has(p.city));
@@ -112,7 +138,10 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
           .toLowerCase()
           .includes(q),
       );
-    if (budgetIdx != null) list = list.filter(BUDGETS[budgetIdx].test);
+    if (budgetActive)
+      list = list.filter(
+        (p) => p.priceLakh >= budgetRange[0] && p.priceLakh <= budgetRange[1],
+      );
     if (areaIdx != null) list = list.filter(AREAS[areaIdx].test);
     if (bhks.size) list = list.filter((p) => bhkNums(p).some((b) => bhks.has(b)));
     if (possessions.size) list = list.filter((p) => possessions.has(p.possession));
@@ -124,11 +153,11 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
     if (sort === "price-desc") s.sort((a, b) => b.priceLakh - a.priceLakh);
     if (sort === "rating") s.sort((a, b) => b.builder.rating - a.builder.rating);
     return s;
-  }, [initial, tab, locations, locQuery, budgetIdx, areaIdx, bhks, possessions, amenities, builders, sort]);
+  }, [initial, tab, locations, locQuery, budgetActive, budgetRange, areaIdx, bhks, possessions, amenities, builders, sort]);
 
   const clearAll = () => {
     setLocations(new Set());
-    setBudgetIdx(null);
+    setBudget(null);
     setAreaIdx(null);
     setBhks(new Set());
     setPossessions(new Set());
@@ -148,7 +177,7 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
     bhks.size +
     possessions.size +
     amenities.size +
-    (budgetIdx != null ? 1 : 0) +
+    (budgetActive ? 1 : 0) +
     (areaIdx != null ? 1 : 0) +
     (locQuery ? 1 : 0);
 
@@ -233,29 +262,16 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
       </FilterGroup>
 
       <FilterGroup title="Budget">
-        <div className="mb-2 mt-1">
-          <div className="h-1.5 rounded-full bg-gradient-to-r from-accent to-primary/40" />
-          <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
-            <span>₹10 L</span>
-            <span>₹10 Cr+</span>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {BUDGETS.map((b, i) => (
-            <button
-              key={b.label}
-              onClick={() => setBudgetIdx(budgetIdx === i ? null : i)}
-              className={cn(
-                "rounded-lg border px-2 py-1.5 text-xs font-semibold transition-colors",
-                budgetIdx === i
-                  ? "border-accent bg-accent/10 text-accent"
-                  : "border-border text-foreground hover:border-accent/50",
-              )}
-            >
-              {b.label}
-            </button>
-          ))}
-        </div>
+        {priceBounds.max > priceBounds.min ? (
+          <BudgetRange
+            min={priceBounds.min}
+            max={priceBounds.max}
+            value={budgetRange}
+            onChange={setBudget}
+          />
+        ) : (
+          <p className="text-xs text-muted-foreground">Price range unavailable.</p>
+        )}
       </FilterGroup>
 
       <FilterGroup title="Area (sq.ft)">
@@ -579,6 +595,68 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
 }
 
 /* ─────────────────────────── pieces ─────────────────────────── */
+
+/** Dual-thumb min–max budget slider. Two overlaid native range inputs (only the
+ *  thumbs are interactive) over a shared track with a highlighted active span. */
+function BudgetRange({
+  min,
+  max,
+  value,
+  onChange,
+}: {
+  min: number;
+  max: number;
+  value: [number, number];
+  onChange: (v: [number, number]) => void;
+}) {
+  const STEP = 5; // ₹5 L increments
+  const [lo, hi] = value;
+  const pct = (v: number) => ((v - min) / (max - min)) * 100;
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between text-xs font-semibold text-foreground">
+        <span>{fmtBudget(lo)}</span>
+        <span className="text-muted-foreground">–</span>
+        <span>{fmtBudget(hi)}</span>
+      </div>
+      <div className="relative mb-1 h-4">
+        {/* base track */}
+        <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-muted" />
+        {/* active span */}
+        <div
+          className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-gradient-to-r from-accent to-primary/40"
+          style={{ left: `${pct(lo)}%`, right: `${100 - pct(hi)}%` }}
+        />
+        {/* min thumb (kept above so it stays grabbable near the max end) */}
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={STEP}
+          value={lo}
+          aria-label="Minimum budget"
+          onChange={(e) => onChange([Math.min(Number(e.target.value), hi - STEP), hi])}
+          className={cn(THUMB, "z-20")}
+        />
+        {/* max thumb */}
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={STEP}
+          value={hi}
+          aria-label="Maximum budget"
+          onChange={(e) => onChange([lo, Math.max(Number(e.target.value), lo + STEP)])}
+          className={cn(THUMB, "z-10")}
+        />
+      </div>
+      <div className="flex justify-between text-[11px] text-muted-foreground">
+        <span>{fmtBudget(min)}</span>
+        <span>{fmtBudget(max)}</span>
+      </div>
+    </div>
+  );
+}
 
 function FilterGroup({
   title,
