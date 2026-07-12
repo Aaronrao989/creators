@@ -415,11 +415,23 @@ export function ComparisonView({
                   <ul className="space-y-1.5">
                     {connectivity(p).map((c) => (
                       <li key={c.label} className="flex items-center justify-between gap-2 text-xs">
-                        <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <span
+                          className={cn(
+                            "flex items-center gap-1.5",
+                            c.emphasize ? "font-bold text-foreground" : "text-muted-foreground",
+                          )}
+                        >
                           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
                           {c.label}
                         </span>
-                        <span className="shrink-0 font-semibold text-foreground">{c.value}</span>
+                        <span
+                          className={cn(
+                            "shrink-0",
+                            c.emphasize ? "font-bold text-accent" : "font-semibold text-foreground",
+                          )}
+                        >
+                          {c.value}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -748,10 +760,10 @@ function sqftRange(p: Property): string {
 function connectivity(p: Property) {
   // Source sheets provide travel TIME in minutes (the 4th metric is Expressway).
   return [
-    { label: "Metro Station", value: `${p.location.metroKm} min` },
-    { label: "Hospital", value: `${p.location.hospitalKm} min` },
-    { label: "School", value: `${p.location.schoolKm} min` },
-    { label: "Expressway", value: `${p.location.airportKm} min` },
+    { label: "Metro Station", value: p.location.metroKm > 0 ? `${p.location.metroKm} min` : "-", emphasize: true },
+    { label: "Hospital", value: p.location.hospitalKm > 0 ? `${p.location.hospitalKm} min` : "-" },
+    { label: "School", value: p.location.schoolKm > 0 ? `${p.location.schoolKm} min` : "-" },
+    { label: "Expressway", value: p.location.airportKm > 0 ? `${p.location.airportKm} min` : "-" },
     { label: "Connectivity Score", value: `${p.location.connectivityIndex}/100` },
   ];
 }

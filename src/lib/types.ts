@@ -95,6 +95,8 @@ export interface Property {
   id: string;
   name: string;
   subtitle: string;
+  /** Long-form project description from the source sheet ("" when none). */
+  description: string;
   builder: Builder;
   city: City;
   locality: string;

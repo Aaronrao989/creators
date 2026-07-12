@@ -127,7 +127,9 @@ export function PropertyDetail({
     },
     {
       q: "Is metro connectivity available?",
-      a: `The nearest metro station is approximately ${p.location.metroKm} minutes away.`,
+      a: p.location.metroKm > 0
+        ? `The nearest metro station is approximately ${p.location.metroKm} minutes away.`
+        : "-",
     },
   ];
 
@@ -230,14 +232,28 @@ export function PropertyDetail({
       {/* Quick stats */}
       <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-5 shadow-glass sm:grid-cols-3 lg:grid-cols-6">
         <Stat icon={CalendarCheck} label="Possession" value={p.possession === "Ready to Move" ? "Ready" : p.possessionDate} />
-        <Stat icon={Building2} label="Total Area" value={`${p.areaAcres} Acres`} />
-        <Stat icon={Building2} label="Towers" value={`${p.towers} Towers`} />
-        {p.totalUnits ? (
-          <Stat icon={Building2} label="Total Units" value={p.totalUnits.toLocaleString("en-IN")} />
-        ) : null}
+        <Stat icon={Building2} label="Total Area" value={p.areaAcres > 0 ? `${p.areaAcres} Acres` : "-"} />
+        <Stat icon={Building2} label="Towers" value={p.towers > 0 ? `${p.towers} Towers` : "-"} />
+        <Stat icon={Building2} label="Total Units" value={p.totalUnits ? p.totalUnits.toLocaleString("en-IN") : "-"} />
         <Stat icon={ShieldCheck} label="Clubhouse" value={p.amenities.clubhouse ? "Yes" : "No"} />
-        <Stat icon={Train} label="Metro Distance" value={`${p.location.metroKm} min`} />
+        <Stat icon={Train} label="Metro Distance" value={p.location.metroKm > 0 ? `${p.location.metroKm} min` : "-"} />
       </div>
+
+      {/* Project Details — full description from the source sheet */}
+      {p.description.trim() && (
+        <div className="mt-4 rounded-2xl border border-border bg-card p-5 shadow-glass">
+          <h2 className="mb-3 font-display text-base font-bold text-primary dark:text-foreground">Project Details</h2>
+          <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+            {p.description
+              .split(/\n+/)
+              .map((para) => para.trim())
+              .filter(Boolean)
+              .map((para, i) => (
+                <p key={i}>{para}</p>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Price & Configuration */}
       <div className="mt-4">
@@ -371,7 +387,7 @@ export function PropertyDetail({
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <l.icon className="h-4 w-4 text-accent" /> {l.label}
                 </span>
-                <span className="font-semibold text-foreground">{l.value} min</span>
+                <span className="font-semibold text-foreground">{l.value > 0 ? `${l.value} min` : "-"}</span>
               </li>
             ))}
           </ul>

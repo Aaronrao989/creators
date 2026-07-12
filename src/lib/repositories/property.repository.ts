@@ -103,6 +103,7 @@ function mapProperty(p: PropertyRow): Property {
     id: p.id,
     name: p.name,
     subtitle: p.subtitle,
+    description: p.description ?? "",
     builder: mapBuilder(p.builder),
     city: p.city as City,
     locality: p.locality,

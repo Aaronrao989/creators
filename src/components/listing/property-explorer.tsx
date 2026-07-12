@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Tag,
+  TrainFront,
   X,
 } from "lucide-react";
 import type { AmenityKey, City, Possession, Property } from "@/lib/types";
@@ -695,6 +696,14 @@ const ListingCard = React.forwardRef<HTMLDivElement, { property: Property }>(
           {p.totalUnits ? <span>· {p.totalUnits.toLocaleString("en-IN")} units</span> : null}
           <span>· {p.towers} {p.towers === 1 ? "tower" : "towers"}</span>
         </div>
+
+        {p.location.metroKm > 0 && (
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <TrainFront className="h-3.5 w-3.5 shrink-0 text-accent" />
+            <span>Metro Distance</span>
+            <span className="font-bold text-foreground">{p.location.metroKm} min</span>
+          </div>
+        )}
 
         <div className="mt-auto grid grid-cols-2 gap-1.5 pt-3 sm:grid-cols-[1fr_1fr_auto]">
           <button
