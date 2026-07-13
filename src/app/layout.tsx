@@ -21,7 +21,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 const SITE_NAME = "Creators Arena";
-const DEFAULT_TITLE = "Creators Arena — Compare Properties Smarter";
+const DEFAULT_TITLE = "Creators Arena";
 const DEFAULT_DESCRIPTION =
   "Compare residential properties across NCR side-by-side. Price, amenities, location, builder reputation and investment potential — find the best home in minutes.";
 
