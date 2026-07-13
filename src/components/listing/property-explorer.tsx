@@ -89,7 +89,28 @@ const toggle = <T,>(set: Set<T>, v: T) => {
   return n;
 };
 
-export function PropertyExplorer({ initial }: { initial: Property[]; title?: string; subtitle?: string }) {
+function hashString(str: string, seed: number) {
+  let h = 0xdeadbeef ^ seed;
+  for(let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 2654435761);
+  }
+  return (h ^ h >>> 16) >>> 0;
+}
+
+let globalSeed: number | null = null;
+
+export function PropertyExplorer({ initial, seed, title, subtitle }: { initial: Property[]; seed?: number; title?: string; subtitle?: string }) {
+  if (typeof window !== "undefined" && globalSeed === null && seed !== undefined) {
+    globalSeed = seed;
+  }
+  const activeSeed = typeof window !== "undefined" ? (globalSeed ?? seed) : seed;
+
+  const shuffledInitial = React.useMemo(() => {
+    if (activeSeed === undefined) return initial;
+    const s = Math.floor(activeSeed * 10000000);
+    return [...initial].sort((a, b) => hashString(a.id, s) - hashString(b.id, s));
+  }, [initial, activeSeed]);
+
   const router = useRouter();
   const selected = useComparison((s) => s.selected);
 
@@ -108,19 +129,19 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
 
   // Distinct builder/brand names, derived from the live data (never hardcoded).
   const builderNames = React.useMemo(
-    () => [...new Set(initial.map((p) => p.builder.name))].sort(),
-    [initial],
+    () => [...new Set(shuffledInitial.map((p) => p.builder.name))].sort(),
+    [shuffledInitial],
   );
 
   // Budget bounds derived from real priced properties (rounded to ₹5 L steps).
   const priceBounds = React.useMemo(() => {
-    const ps = initial.map((p) => p.priceLakh).filter((n) => n > 0);
+    const ps = shuffledInitial.map((p) => p.priceLakh).filter((n) => n > 0);
     if (!ps.length) return { min: 0, max: 0 };
     return {
       min: Math.floor(Math.min(...ps) / 5) * 5,
       max: Math.ceil(Math.max(...ps) / 5) * 5,
     };
-  }, [initial]);
+  }, [shuffledInitial]);
   const budgetRange = React.useMemo<[number, number]>(
     () => budget ?? [priceBounds.min, priceBounds.max],
     [budget, priceBounds],
@@ -129,7 +150,7 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
     budget != null && (budget[0] > priceBounds.min || budget[1] < priceBounds.max);
 
   const filtered = React.useMemo(() => {
-    let list = initial.filter((p) => TABS[tab].test(p));
+    let list = shuffledInitial.filter((p) => TABS[tab].test(p));
     if (locations.size) list = list.filter((p) => locations.has(p.city));
     const q = locQuery.trim().toLowerCase();
     if (q)
@@ -153,7 +174,7 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
     if (sort === "price-desc") s.sort((a, b) => b.priceLakh - a.priceLakh);
     if (sort === "rating") s.sort((a, b) => b.builder.rating - a.builder.rating);
     return s;
-  }, [initial, tab, locations, locQuery, budgetActive, budgetRange, areaIdx, bhks, possessions, amenities, builders, sort]);
+  }, [shuffledInitial, tab, locations, locQuery, budgetActive, budgetRange, areaIdx, bhks, possessions, amenities, builders, sort]);
 
   const clearAll = () => {
     setLocations(new Set());
@@ -166,7 +187,7 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
     setLocQuery("");
   };
 
-  const count = (fn: (p: Property) => boolean) => initial.filter(fn).length;
+  const count = (fn: (p: Property) => boolean) => shuffledInitial.filter(fn).length;
 
   // Mobile/tablet filter drawer (desktop keeps the permanent sidebar).
   const [filtersOpen, setFiltersOpen] = React.useState(false);
@@ -478,13 +499,13 @@ export function PropertyExplorer({ initial }: { initial: Property[]; title?: str
             <div className="grid items-center gap-5 lg:grid-cols-[auto_1fr]">
               <div className="relative flex items-center">
                 <span className="relative h-20 w-28 overflow-hidden rounded-xl sm:h-24 sm:w-36">
-                  <CoverImage src={initial[0]?.image} alt={initial[0]?.name ?? ""} gradient={initial[0]?.gradient} sizes="160px" />
+                  <CoverImage src={shuffledInitial[0]?.image} alt={shuffledInitial[0]?.name ?? ""} gradient={shuffledInitial[0]?.gradient} sizes="160px" />
                 </span>
                 <span className="z-10 -mx-3 flex h-10 w-10 items-center justify-center rounded-full border-4 border-card bg-primary text-[11px] font-extrabold text-primary-foreground">
                   V/S
                 </span>
                 <span className="relative h-20 w-28 overflow-hidden rounded-xl sm:h-24 sm:w-36">
-                  <CoverImage src={initial[1]?.image} alt={initial[1]?.name ?? ""} gradient={initial[1]?.gradient} sizes="160px" />
+                  <CoverImage src={shuffledInitial[1]?.image} alt={shuffledInitial[1]?.name ?? ""} gradient={shuffledInitial[1]?.gradient} sizes="160px" />
                 </span>
               </div>
               <div className="text-center lg:text-left">

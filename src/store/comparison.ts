@@ -28,8 +28,16 @@ export const useComparison = create<ComparisonState>()(
           set({ selected: selected.filter((x) => x !== id) });
           return;
         }
-        if (selected.length >= MAX_COMPARE) {
-          set({ toast: `You can compare up to ${MAX_COMPARE} properties at a time.` });
+        
+        const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+        const currentLimit = isMobile ? 2 : MAX_COMPARE;
+        
+        if (selected.length >= currentLimit) {
+          if (isMobile) {
+            set({ toast: "You can compare up to 2 properties on mobile. Switch to a larger screen to compare up to 4 properties." });
+          } else {
+            set({ toast: `You can compare up to ${MAX_COMPARE} properties at a time.` });
+          }
           return;
         }
         set({ selected: [...selected, id] });

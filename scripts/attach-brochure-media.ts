@@ -19,26 +19,31 @@ const MEDIA: Record<string, { type: string; file: string; alt: string }[]> = {
   Arden: [
     { type: "cover", file: "arden-aerial.jpg", alt: "Godrej Arden aerial view" },
     { type: "gallery", file: "arden-lifestyle.jpg", alt: "Godrej Arden landscaped greens" },
+    { type: "layout", file: "arden-layout.jpg", alt: "Godrej Arden master plan layout" },
   ],
   Sanctury: [
     { type: "cover", file: "sanctury-aerial.jpg", alt: "Northwind Sanctury front elevation" },
     { type: "gallery", file: "sanctury-exterior.jpg", alt: "Northwind Sanctury tower entrance" },
     { type: "gallery", file: "sanctury-amenities.jpg", alt: "Northwind Sanctury amenities" },
+    { type: "layout", file: "sanctury-layout.jpg", alt: "Northwind Estate master plan layout" },
   ],
   "7Peaks Residences": [
     { type: "cover", file: "7peaks-cover.jpg", alt: "Eldeco 7 Peaks front elevation" },
     { type: "gallery", file: "7peaks-g1.jpg", alt: "Eldeco 7 Peaks balcony view" },
     { type: "gallery", file: "7peaks-g2.jpg", alt: "Eldeco 7 Peaks clubhouse atrium" },
+    { type: "layout", file: "7peaks-layout.jpg", alt: "Eldeco 7Peaks master plan layout" },
   ],
   Estate: [
     { type: "cover", file: "estate-cover.jpg", alt: "SKA Estate front elevation" },
     { type: "gallery", file: "estate-g1.jpg", alt: "SKA Estate landscaped walkway" },
     { type: "gallery", file: "estate-g2.jpg", alt: "SKA Estate swimming pool" },
+    { type: "layout", file: "estate-layout.jpg", alt: "SKA Estate master plan layout" },
   ],
   Aurum: [
     { type: "cover", file: "aurum-cover.jpg", alt: "Sobha Aurum front elevation" },
     { type: "gallery", file: "aurum-g1.jpg", alt: "Sobha Aurum towers" },
     { type: "gallery", file: "aurum-g2.jpg", alt: "Sobha Aurum water feature" },
+    { type: "layout", file: "aurum-layout.jpg", alt: "Sobha Aurum master plan layout" },
   ],
   "Green Hights": [
     { type: "cover", file: "divyansh-cover.jpg", alt: "Divyansh Green Hights aerial view" },
@@ -53,11 +58,13 @@ const MEDIA: Record<string, { type: string; file: string; alt: string }[]> = {
     { type: "cover", file: "rivana-cover.jpg", alt: "Sobha Rivana towers at dusk" },
     { type: "gallery", file: "rivana-g1.jpg", alt: "Sobha Rivana tower" },
     { type: "gallery", file: "rivana-g2.jpg", alt: "Sobha Rivana aerial" },
+    { type: "layout", file: "rivana-layout.jpg", alt: "Sobha Rivana master plan layout" },
   ],
   Majesty: [
     { type: "cover", file: "majesty-cover.jpg", alt: "Godrej Majesty front elevation" },
     { type: "gallery", file: "majesty-g1.jpg", alt: "Godrej Majesty masterplan" },
     { type: "gallery", file: "majesty-g2.jpg", alt: "Godrej Majesty clubhouse" },
+    { type: "layout", file: "majesty-layout.jpg", alt: "Godrej Majesty master plan layout" },
   ],
   Yamuna: [
     { type: "cover", file: "yamuna-cover.jpg", alt: "VVIP Yamuna towers" },
@@ -68,31 +75,37 @@ const MEDIA: Record<string, { type: string; file: string; alt: string }[]> = {
   Sunbliss: [
     { type: "cover", file: "sunbliss-cover.jpg", alt: "Purvanchal Sunbliss site plan" },
     { type: "gallery", file: "sunbliss-g1.jpg", alt: "Purvanchal Sunbliss highlights" },
+    { type: "layout", file: "sunbliss-layout.jpg", alt: "Purvanchal Sunbliss master plan layout" },
   ],
   Ballads: [
     { type: "cover", file: "ballads-cover.jpg", alt: "Eldeco Ballads of Bliss render" },
     { type: "gallery", file: "ballads-g1.jpg", alt: "Eldeco Ballads of Bliss render" },
     { type: "gallery", file: "ballads-g2.jpg", alt: "Eldeco Ballads of Bliss render" },
+    { type: "layout", file: "ballads-layout.jpg", alt: "Eldeco Ballads of Bliss master plan layout" },
   ],
   Echoes: [
     { type: "cover", file: "echoes-cover.jpg", alt: "Eldeco Echoes of Eden front elevation" },
     { type: "gallery", file: "echoes-g1.jpg", alt: "Eldeco Echoes of Eden render" },
     { type: "gallery", file: "echoes-g2.jpg", alt: "Eldeco Echoes of Eden render" },
+    { type: "layout", file: "echoes-layout.jpg", alt: "Eldeco Echoes of Eden master plan layout" },
   ],
   Wishpers: [
     { type: "cover", file: "whisper-cover.jpg", alt: "Eldeco Whisper of Wonder render" },
     { type: "gallery", file: "whisper-g1.jpg", alt: "Eldeco Whisper of Wonder render" },
     { type: "gallery", file: "whisper-g2.jpg", alt: "Eldeco Whisper of Wonder render" },
+    { type: "layout", file: "whisper-layout.jpg", alt: "Eldeco Whisper of Wonder master plan layout" },
   ],
   CHRYSALIS: [
     { type: "cover", file: "chrysalis-cover.jpg", alt: "Gaur Chrysalis towers" },
     { type: "gallery", file: "chrysalis-g1.jpg", alt: "Gaur Chrysalis clubhouse" },
     { type: "gallery", file: "chrysalis-g2.jpg", alt: "Gaur Chrysalis clubhouse" },
+    { type: "layout", file: "chrysalis-layout.jpg", alt: "Gaur Chrysalis master plan layout" },
   ],
   SEASONS: [
     { type: "cover", file: "arihant-cover.jpg", alt: "Arihant Seasons render" },
     { type: "gallery", file: "arihant-g1.jpg", alt: "Arihant Seasons balcony view" },
     { type: "gallery", file: "arihant-g2.jpg", alt: "Arihant Seasons lifestyle" },
+    { type: "layout", file: "arihant-layout.jpg", alt: "Arihant Seasone master plan layout" },
   ],
   // Files not yet downloaded from the brochure share-folders — drop them into
   // public/properties/ with these names and re-run. Missing files are skipped.
@@ -100,6 +113,7 @@ const MEDIA: Record<string, { type: string; file: string; alt: string }[]> = {
     { type: "cover", file: "peridona-cover.jpg", alt: "CRC The Peridona, Jaypee Greens, Greater Noida" },
     { type: "gallery", file: "peridona-g1.jpg", alt: "CRC The Peridona view" },
     { type: "gallery", file: "peridona-g2.jpg", alt: "CRC The Peridona view" },
+    { type: "layout", file: "peridona-layout.jpg", alt: "CRC Peridona master plan layout" },
   ],
   "Crown Residency": [
     { type: "cover", file: "crown-cover.jpg", alt: "Godrej Crown Residency, Greater Noida" },
@@ -109,6 +123,7 @@ const MEDIA: Record<string, { type: string; file: string; alt: string }[]> = {
   // Cover = front elevation extracted from the project's brochure.
   Sephyra: [
     { type: "cover", file: "sephyra-cover.jpg", alt: "Imperia The Sephyra front elevation, Yamuna Expressway" },
+    { type: "layout", file: "sephyra-layout.jpg", alt: "Imperia Sephyra master plan layout" },
   ],
 };
 
@@ -135,7 +150,7 @@ async function main() {
     }
     // Replace only the cover/gallery media we manage here (idempotent).
     await prisma.propertyMedia.deleteMany({
-      where: { propertyId: property.id, type: { in: ["cover", "gallery"] } },
+      where: { propertyId: property.id, type: { in: ["cover", "gallery", "layout"] } },
     });
     await prisma.propertyMedia.createMany({
       data: present.map((m, i) => ({

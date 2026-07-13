@@ -28,6 +28,7 @@ import { setPendingAction } from "@/lib/pending-action";
 import { Button } from "@/components/ui/button";
 import { CoverImage } from "@/components/ui/cover-image";
 import { Lightbox } from "@/components/ui/lightbox";
+import { SiteVisitModal } from "@/components/property/site-visit-modal";
 import { cn, formatPriceLakh } from "@/lib/utils";
 
 const EXPERT_PHONE = "+919252996677";
@@ -86,6 +87,7 @@ export function PropertyDetail({
 
   const rating = reviewAvg ?? p.builder.rating;
 
+  const [isSiteVisitOpen, setIsSiteVisitOpen] = React.useState(false);
   const [activePlan, setActivePlan] = React.useState(0);
   // Only surface floor plans backed by a real brochure image — never present a
   // config card with a gradient placeholder as a "floor plan" (e.g. projects
@@ -215,11 +217,9 @@ export function PropertyDetail({
             <div className="text-xs text-muted-foreground">{p.configs} · {p.priceRangeLabel}</div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <a href={`tel:${EXPERT_PHONE}`} className="flex-1">
-              <Button variant="accent" size="sm" className="w-full">
-                <CalendarCheck className="h-4 w-4" /> Book Site Visit
-              </Button>
-            </a>
+            <Button variant="accent" size="sm" className="w-full flex-1" onClick={() => setIsSiteVisitOpen(true)}>
+              <CalendarCheck className="h-4 w-4" /> Book Site Visit
+            </Button>
             <a href={`tel:${EXPERT_PHONE}`} className="flex-1">
               <Button variant="outline" size="sm" className="w-full">
                 <Phone className="h-4 w-4" /> Contact Expert
@@ -377,6 +377,23 @@ export function PropertyDetail({
         </div>
       </div>
 
+      {/* Master Plan */}
+      {p.layout && (
+        <div className="mt-4 rounded-2xl border border-border bg-card p-5 shadow-glass">
+          <h2 className="mb-3 font-display text-base font-bold text-primary dark:text-foreground">Master Plan</h2>
+          <button
+            type="button"
+            onClick={() => setZoom(p.layout!)}
+            className="group relative block h-64 w-full overflow-hidden rounded-xl border border-border sm:h-96 cursor-zoom-in"
+          >
+            <CoverImage src={p.layout} alt={`${p.name} Master Plan`} gradient={p.gradient} sizes="(max-width:1024px) 100vw, 80vw" />
+            <span className="absolute bottom-4 right-4 inline-flex items-center gap-1 rounded-lg bg-black/60 px-3 py-2 text-xs font-semibold text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100">
+              <Expand className="h-4 w-4" /> Expand Layout
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Location & Connectivity */}
       <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1.4fr]">
         <div className="rounded-2xl border border-border bg-card p-5 shadow-glass">
@@ -484,6 +501,12 @@ export function PropertyDetail({
 
       {/* Floor-plan lightbox */}
       {zoom && <Lightbox src={zoom} onClose={() => setZoom(null)} />}
+      
+      <SiteVisitModal 
+        isOpen={isSiteVisitOpen} 
+        onClose={() => setIsSiteVisitOpen(false)} 
+        propertyName={p.name} 
+      />
     </div>
   );
 }

@@ -651,7 +651,7 @@ function OverviewTable({ rows, n }: { rows: OverviewItem[]; n: number }) {
               )}
               style={{ gridColumn: 1, gridRow: i + 1 }}
             >
-              <span className="break-words text-sm font-bold text-foreground">{r.values[0]}</span>
+              <span className="break-all text-sm font-bold text-foreground">{r.values[0]}</span>
               {r.subs?.[0] && (
                 <span className="text-[11px] text-muted-foreground">{r.subs[0]}</span>
               )}
@@ -674,7 +674,7 @@ function OverviewTable({ rows, n }: { rows: OverviewItem[]; n: number }) {
               )}
               style={{ gridColumn: 3, gridRow: i + 1 }}
             >
-              <span className="break-words text-sm font-bold text-foreground">{r.values[1]}</span>
+              <span className="break-all text-sm font-bold text-foreground">{r.values[1]}</span>
               {r.subs?.[1] && (
                 <span className="text-[11px] text-muted-foreground">{r.subs[1]}</span>
               )}
@@ -703,8 +703,8 @@ function OverviewTable({ rows, n }: { rows: OverviewItem[]; n: number }) {
               {r.label}
             </span>
             {r.values.map((v, i) => (
-              <div key={i} className="px-1 text-center">
-                <div className="break-words text-sm font-bold text-foreground">{v}</div>
+              <div key={i} className="px-1 text-center min-w-0">
+                <div className="break-all text-sm font-bold text-foreground">{v}</div>
                 {r.subs?.[i] && (
                   <div className="text-[11px] text-muted-foreground">{r.subs[i]}</div>
                 )}

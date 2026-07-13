@@ -20,12 +20,14 @@ export const dynamic = "force-dynamic";
 
 export default async function PropertiesPage() {
   const properties = await getDataSource().list();
+  const seed = Math.random();
   return (
     <>
       {/* Page heading for a11y/SEO; the visible UI leads with filters + tabs. */}
       <h1 className="sr-only">Browse and compare NCR residential properties</h1>
       <PropertyExplorer
         initial={properties}
+        seed={seed}
         title="Select properties to compare"
         subtitle="Pick 2–4 homes and hit Compare to see a full side-by-side analysis with a recommendation score."
       />

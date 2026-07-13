@@ -22,10 +22,10 @@ const LOCATIONS = [
 export function SiteFooter() {
   return (
     <footer className="mt-24 bg-primary text-primary-foreground">
-      <div className="container grid gap-12 py-16 md:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
-        <div>
+      <div className="container grid grid-cols-2 gap-12 py-16 md:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
+        <div className="col-span-2 md:col-span-1">
           <div className="text-primary-foreground">
-            <Logo />
+            <Logo dark imageClassName="h-40" />
           </div>
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-primary-foreground/70">
             At Creators Arena, we don&apos;t just close deals — we help you find
@@ -49,7 +49,7 @@ export function SiteFooter() {
           ))}
         </FooterCol>
 
-        <div>
+        <div className="col-span-2 md:col-span-1">
           <h4 className="mb-4 text-sm font-bold uppercase tracking-wider">
             Get in touch
           </h4>

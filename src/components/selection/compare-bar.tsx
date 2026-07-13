@@ -49,6 +49,16 @@ export function CompareBar() {
   const canCompare = selected.length >= MIN_COMPARE;
   const need = MIN_COMPARE - selected.length;
 
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const currentLimit = isMobile ? 2 : MAX_COMPARE;
+
   return (
     <AnimatePresence>
       {selected.length > 0 && (
@@ -63,7 +73,7 @@ export function CompareBar() {
             <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-primary px-4 py-3.5 text-primary-foreground shadow-lift sm:flex-row sm:items-center">
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
                 <span className="shrink-0 text-xs font-medium text-primary-foreground/55">
-                  Selected ({selected.length}/{MAX_COMPARE})
+                  Selected ({selected.length}/{currentLimit})
                 </span>
                 {items.map((p) => (
                   <div

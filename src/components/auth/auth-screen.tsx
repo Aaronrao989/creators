@@ -127,7 +127,7 @@ export function AuthScreen({ initialMode }: { initialMode: "login" | "signup" })
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="98765 43210"
+                  placeholder="99XXX XXXXX"
                   autoComplete="tel"
                   inputMode="numeric"
                   className="auth-input"

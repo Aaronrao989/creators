@@ -98,6 +98,7 @@ function mapProperty(p: PropertyRow): Property {
   const gallery = p.media
     .filter((m) => m.type === "gallery")
     .map((m) => m.url);
+  const layout = p.media.find((m) => m.type === "layout")?.url ?? null;
 
   return {
     id: p.id,
@@ -120,6 +121,7 @@ function mapProperty(p: PropertyRow): Property {
     totalUnits: p.totalUnits ?? null,
     image: cover,
     gallery,
+    layout,
     gradient: [p.gradientFrom, p.gradientTo],
     amenities,
     amenityList,

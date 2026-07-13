@@ -118,6 +118,8 @@ export interface Property {
   image: string;
   /** Additional brochure images (gallery); empty when none exist. */
   gallery: string[];
+  /** Master plan / land layout image. */
+  layout: string | null;
   /** Tailwind-friendly gradient stops for the card fallback / accent. */
   gradient: [string, string];
   amenities: Record<AmenityKey, boolean>;

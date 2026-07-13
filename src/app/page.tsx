@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const properties = await getDataSource().list();
+  const seed = Math.random();
   return (
     <>
       {/* Hero is a fixed marketing illustration — intentionally NOT fed live
@@ -20,6 +21,7 @@ export default async function HomePage() {
       <Hero3D />
       <PropertyExplorer
         initial={properties}
+        seed={seed}
         title="Featured properties by location"
         subtitle="Browse live NCR projects grouped by location, then shortlist 2–4 to compare."
       />
