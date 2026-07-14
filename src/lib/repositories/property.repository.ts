@@ -50,6 +50,7 @@ const propertyInclude = {
   location: true,
   investment: true,
   configurations: { orderBy: { sortOrder: "asc" } },
+  towerUnits: { orderBy: { sortOrder: "asc" } },
   amenities: true,
   media: { orderBy: { sortOrder: "asc" } },
   attributes: { orderBy: { sortOrder: "asc" } },
@@ -146,6 +147,13 @@ function mapProperty(p: PropertyRow): Property {
       builtUpAreaSqFt: c.builtUpAreaSqft ?? null,
       priceLabel: c.priceLabel,
       image: c.floorPlanImage || "",
+    })),
+    towerList: p.towerUnits.map((t) => ({
+      name: t.name,
+      floorPlan: t.floorPlan ?? null,
+      lifts: t.lifts ?? null,
+      unitsPerFloor: t.unitsPerFloor ?? null,
+      totalUnits: t.totalUnits ?? null,
     })),
     highlights: p.attributes
       .filter((a) => a.category === "highlight")

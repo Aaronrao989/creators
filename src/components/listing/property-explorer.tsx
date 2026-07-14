@@ -66,7 +66,6 @@ const AMENITY_OPTS: { key: AmenityKey; label: string }[] = [
 const TABS: { label: string; test: (p: Property) => boolean }[] = [
   { label: "Apartments", test: (p) => p.kind === "Apartment" },
   { label: "Luxury Homes", test: (p) => p.priceLakh >= 250 || p.kind === "Villa" },
-  { label: "New Launches", test: (p) => p.possession === "New Launch" },
 ];
 const FEATURES = [
   { icon: "/icons/price.png", label: "Price & Configuration" },
@@ -126,6 +125,8 @@ export function PropertyExplorer({ initial, seed, title, subtitle }: { initial: 
   const [amenities, setAmenities] = React.useState<Set<AmenityKey>>(new Set());
   const [builders, setBuilders] = React.useState<Set<string>>(new Set());
   const [sort, setSort] = React.useState("recommended");
+  // Toolbar "Search by Project Name" — real-time, partial, case-insensitive.
+  const [projectQuery, setProjectQuery] = React.useState("");
 
   // Distinct builder/brand names, derived from the live data (never hardcoded).
   const builderNames = React.useMemo(
@@ -159,6 +160,11 @@ export function PropertyExplorer({ initial, seed, title, subtitle }: { initial: 
           .toLowerCase()
           .includes(q),
       );
+    const pq = projectQuery.trim().toLowerCase();
+    if (pq)
+      list = list.filter((p) =>
+        `${p.name} ${p.builder.name}`.toLowerCase().includes(pq),
+      );
     if (budgetActive)
       list = list.filter(
         (p) => p.priceLakh >= budgetRange[0] && p.priceLakh <= budgetRange[1],
@@ -174,7 +180,7 @@ export function PropertyExplorer({ initial, seed, title, subtitle }: { initial: 
     if (sort === "price-desc") s.sort((a, b) => b.priceLakh - a.priceLakh);
     if (sort === "rating") s.sort((a, b) => b.builder.rating - a.builder.rating);
     return s;
-  }, [shuffledInitial, tab, locations, locQuery, budgetActive, budgetRange, areaIdx, bhks, possessions, amenities, builders, sort]);
+  }, [shuffledInitial, tab, locations, locQuery, projectQuery, budgetActive, budgetRange, areaIdx, bhks, possessions, amenities, builders, sort]);
 
   const clearAll = () => {
     setLocations(new Set());
@@ -408,6 +414,16 @@ export function PropertyExplorer({ initial, seed, title, subtitle }: { initial: 
                   </span>
                 )}
               </button>
+              <div className="relative w-full sm:w-56">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={projectQuery}
+                  onChange={(e) => setProjectQuery(e.target.value)}
+                  placeholder="Search by Project or Builder..."
+                  aria-label="Search by project or builder name"
+                  className="h-10 w-full rounded-xl border border-border bg-card pl-9 pr-3 text-sm outline-none ring-accent/40 focus:ring-2"
+                />
+              </div>
               <div className="relative">
                 <select
                   value={sort}

@@ -90,6 +90,16 @@ export interface FloorPlan {
   image: string;
 }
 
+/** A single tower's details from the source sheet (nulls where unavailable). */
+export interface TowerInfo {
+  name: string;
+  /** Floor configuration, e.g. "B+S+G+34". */
+  floorPlan: string | null;
+  lifts: number | null;
+  unitsPerFloor: number | null;
+  totalUnits: number | null;
+}
+
 /** The core property entity. */
 export interface Property {
   id: string;
@@ -128,6 +138,8 @@ export interface Property {
   location: LocationMetrics;
   investment: InvestmentMetrics;
   floorPlans: FloorPlan[];
+  /** Per-tower details from the source sheet (empty when none). */
+  towerList: TowerInfo[];
   highlights: string[];
 }
 

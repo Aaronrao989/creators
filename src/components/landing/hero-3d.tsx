@@ -77,7 +77,7 @@ export function Hero3D() {
 
           <p className="mt-6 max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
             Stack homes side-by-side and let our rule-based engine score them on
-            price, amenities, location, builder and ROI — the best investment, in
+            price, amenities, location, builder and ROI - the best investment, in
             minutes.
           </p>
 
