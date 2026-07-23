@@ -9,6 +9,7 @@
  * Run: npx tsx scripts/attach-brochure-media.ts
  */
 import "dotenv/config";
+import { assertNotProduction } from "./guard-prod";
 import fs from "node:fs";
 import path from "node:path";
 import { prisma } from "@/lib/db/prisma";
@@ -128,6 +129,7 @@ const MEDIA: Record<string, { type: string; file: string; alt: string }[]> = {
 };
 
 async function main() {
+  assertNotProduction();
   for (const [name, items] of Object.entries(MEDIA)) {
     const property = await prisma.property.findFirst({
       where: { name: { contains: name, mode: "insensitive" } },

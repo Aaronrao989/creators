@@ -4,6 +4,7 @@
  *   npx tsx scripts/normalize-data.ts
  */
 import "dotenv/config";
+import { assertNotProduction } from "./guard-prod";
 import { prisma } from "@/lib/db/prisma";
 
 // current DB name -> full professional name
@@ -47,6 +48,7 @@ function fixLocality(loc: string): string {
 }
 
 async function main() {
+  assertNotProduction();
   const props = await prisma.property.findMany({
     select: { id: true, name: true, city: true, locality: true },
   });

@@ -10,6 +10,7 @@ export const CITIES: City[] = [
   "Greater Noida East",
   "Greater Noida West",
   "Yamuna Expressway",
+  "Ghaziabad",
 ];
 
 export const KINDS: PropertyKind[] = [

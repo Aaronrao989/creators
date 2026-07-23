@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { assertNotProduction } from "./guard-prod";
 import fs from "node:fs";
 import path from "node:path";
 import { prisma } from "@/lib/db/prisma";
@@ -15,6 +16,7 @@ function collectXlsx(dir: string): string[] {
 }
 
 async function main() {
+  assertNotProduction();
   console.log("⏳ Wiping old property data (single source of truth = creators_new)…");
   await prisma.savedComparison.deleteMany({});
   await prisma.property.deleteMany({}); // cascades configs/amenities/media/reviews/towers/etc.

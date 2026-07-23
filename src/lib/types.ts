@@ -14,7 +14,8 @@ export type PropertyKind = "Apartment" | "Villa" | "Plot" | "Builder Floor";
 export type City =
   | "Greater Noida East"
   | "Greater Noida West"
-  | "Yamuna Expressway";
+  | "Yamuna Expressway"
+  | "Ghaziabad";
 
 /** A real-estate developer / builder. */
 export interface Builder {

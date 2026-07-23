@@ -89,12 +89,13 @@ export function PropertyDetail({
 
   const [isSiteVisitOpen, setIsSiteVisitOpen] = React.useState(false);
   const [activePlan, setActivePlan] = React.useState(0);
-  // Only surface floor plans backed by a real brochure image — never present a
-  // config card with a gradient placeholder as a "floor plan" (e.g. projects
-  // with a datasheet but no brochure). When none exist, we show a soft notice.
-  const floorPlansWithImages = p.floorPlans.filter((fp) => fp.image);
-  const hasFloorPlans = floorPlansWithImages.length > 0;
-  const plan = floorPlansWithImages[activePlan] ?? floorPlansWithImages[0];
+  // When at least one config has a real plan image, show EVERY config — using a
+  // branded placeholder for those still missing an image (rather than hiding
+  // them). When no config has any image, show a soft "available soon" notice.
+  const anyFloorPlanImage = p.floorPlans.some((fp) => fp.image);
+  const shownPlans = anyFloorPlanImage ? p.floorPlans : [];
+  const hasFloorPlans = shownPlans.length > 0;
+  const plan = shownPlans[activePlan] ?? shownPlans[0];
   const [zoom, setZoom] = React.useState<string | null>(null);
 
   const mapsQuery = encodeURIComponent(`${p.name} ${p.locality} ${p.city}`);
@@ -157,9 +158,15 @@ export function PropertyDetail({
       <div className={cn("grid gap-3", tiles.length > 0 && "lg:grid-cols-[1.6fr_1fr]")}>
         <div className="relative h-64 overflow-hidden rounded-2xl sm:h-80 lg:h-[26rem]">
           <CoverImage src={p.image} alt={p.name} gradient={p.gradient} label={p.name} sizes="(max-width:1024px) 100vw, 60vw" />
-          <span className="absolute left-4 top-4 rounded-lg bg-white/90 px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm backdrop-blur">
-            View Photos
-          </span>
+          {p.image && (
+            <button
+              type="button"
+              onClick={() => setZoom(p.image)}
+              className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-lg bg-white/90 px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm backdrop-blur transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              <Expand className="h-3.5 w-3.5" /> View Image
+            </button>
+          )}
         </div>
         {tiles.length > 0 && (
           <div className="flex flex-col gap-3 lg:h-[26rem]">
@@ -321,7 +328,7 @@ export function PropertyDetail({
             <p className="text-sm text-muted-foreground">Floor plans will be available soon.</p>
           )}
           <div className="mb-3 flex flex-wrap gap-2">
-            {floorPlansWithImages.map((fp, i) => (
+            {shownPlans.map((fp, i) => (
               <button
                 key={`${fp.config}-${fp.areaSqFt}-${i}`}
                 onClick={() => setActivePlan(i)}

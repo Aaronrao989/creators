@@ -97,7 +97,7 @@ export function Hero3D() {
 
           <dl className="mt-10 flex flex-wrap gap-x-9 gap-y-4">
             {[
-              { k: "20+", v: "Verified projects" },
+              { k: "30+", v: "Verified projects" },
               { k: "5", v: "Scoring factors" },
               { k: "< 2 min", v: "To a decision" },
             ].map((s) => (

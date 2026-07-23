@@ -22,6 +22,7 @@
  * Run: npx tsx scripts/attach-floorplan-images.ts
  */
 import "dotenv/config";
+import { assertNotProduction } from "./guard-prod";
 import fs from "node:fs";
 import path from "node:path";
 import { prisma } from "@/lib/db/prisma";
@@ -72,6 +73,7 @@ function parseFile(file: string): Parsed | null {
 }
 
 async function main() {
+  assertNotProduction();
   const props = await prisma.property.findMany({
     select: { name: true, configurations: { select: { id: true, label: true, areaSqFt: true }, orderBy: { sortOrder: "asc" } } },
   });
